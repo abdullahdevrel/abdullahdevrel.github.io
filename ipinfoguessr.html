@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script data-goatcounter="https://reincoder.goatcounter.com/count"
-  async src="//gc.zgo.at/count.js"></script>
   <meta charset="UTF-8">
   <title>IP Geolocation Guessing Game</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script data-goatcounter="https://reincoder.goatcounter.com/count"
+  async src="//gc.zgo.at/count.js"></script>
   <style>
     body, html { margin: 0; padding: 0; height: 100%; }
     #map { height: 100%; width: 100%; position: absolute; }
@@ -72,7 +72,7 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  const map = L.map('map').setView([20, 0], 2);
+  const map = L.map('map').setView([20, 0], 3);
   L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
     maxZoom: 18
@@ -129,6 +129,7 @@
     previousIpAddress = currentData.ip;
     ipAddress = currentData.ip;
     realLocation = currentData.loc.split(',').map(Number);
+    map.setView([20, 0], 3);
   
     let details = `IP: <strong>${ipAddress}</strong><br>`;
     if (currentData.org) {
