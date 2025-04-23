@@ -3,212 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <title>IP Geolocation Guessing Game</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    #map { width: 100%; height: 100%; }
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100%; width: 100%; position: absolute; }
     #info {
       position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 12px;
-      border-radius: 8px;
-      font-family: sans-serif;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
       z-index: 1000;
-      max-width: 320px;
-      box-sizing: border-box;
+      max-width: 300px;
     }
-    button {
-      margin-top: 8px;
-      padding: 6px 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    input {
+    #info select, #info button {
+      margin-top: 10px;
+      padding: 5px;
       width: 100%;
-      margin-top: 4px;
-      padding: 6px;
+    }
+    #modeSelector, #startButton {
+      display: block;
+    }
+    #info.playing #modeSelector, #info.playing #startButton {
+      display: none;
+    }
+    #scoreDisplay {
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    #footer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(255,255,255,0.95);
+      padding: 10px;
       font-size: 14px;
-      box-sizing: border-box;
+      text-align: center;
+      z-index: 999;
     }
   </style>
 </head>
 <body>
-
 <div id="map"></div>
 <div id="info">
-  Enter your IPinfo Token:<br>
-  <input id="tokenInput" type="text" placeholder="Your IPinfo Token"><br>
-  <button onclick="initGame()">Start Game</button>
+  <div id="status">Click Start Game to begin</div>
+  <select id="modeSelector">
+    <option value="">Choose Mode</option>
+    <option value="normal">Normal Mode</option>
+    <option value="hard">Hard Mode</option>
+  </select>
+  <button id="startButton" onclick="startGame()">Start Game</button>
+  <div id="result"></div>
+  <div id="scoreDisplay">Total Score: 0</div>
+</div>
+<div id="footer">
+  Guess where the IP is located by clicking on the map.<br>
+  The closer your guess, the higher your score.<br>
+  You can keep playing in your selected mode until the page is reloaded.<br>
+  <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong><br>
+  <div id="lastIpLink"></div>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  const map = L.map('map').setView([20, 0], 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-  }).addTo(map);
+const map = L.map('map').setView([20, 0], 2);
+L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  maxZoom: 18
+}).addTo(map);
 
-  const infoBox = document.getElementById("info");
-  const guessedItems = [];
-  let ipAddress = '';
-  let realLocation = null;
-  let currentScore = 0;
-  let ipinfoToken = '';
+let currentScore = 0;
+let ipAddress = '';
+let realLocation = null;
+let previousIpAddress = null;
+let guessedItems = [];
+let currentMode = localStorage.getItem('ipGuessMode') || '';
 
-  function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2-lat1) * Math.PI / 180;
-    const dLon = (lon2-lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+const modeSelector = document.getElementById('modeSelector');
+modeSelector.value = currentMode;
+
+modeSelector.addEventListener('change', () => {
+  currentMode = modeSelector.value;
+  localStorage.setItem('ipGuessMode', currentMode);
+});
+
+const infoDiv = document.getElementById('info');
+const scoreDisplay = document.getElementById('scoreDisplay');
+
+async function startGame() {
+  if (!currentMode) {
+    alert("Please select a mode before starting the game.");
+    return;
   }
 
-  function getRandomIP() {
-    return `${Math.floor(Math.random() * 223)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
+  clearMap();
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('status').innerText = 'Fetching a new IP...';
+  infoDiv.classList.add('playing');
+
+  const data = await fetchValidIPLocation();
+  if (!data) {
+    document.getElementById('status').innerText = 'Failed to load IP info. Try again.';
+    return;
   }
 
-  async function fetchValidIPLocation() {
-    for (let attempts = 0; attempts < 10; attempts++) {
-      const ip = getRandomIP();
-      try {
-        const res = await fetch(`https://ipinfo.io/${ip}?token=${ipinfoToken}`);
-        if (!res.ok) continue;
-        const data = await res.json();
-        if (data.loc) return { ip, loc: data.loc.split(',').map(Number) };
-      } catch (e) {
-        continue;
+  // Update the last IP address link if there's a previous one
+  if (previousIpAddress) {
+    document.getElementById('lastIpLink').innerHTML = `Last IP address: <a href="https://ipinfo.io/${previousIpAddress}" target="_blank">${previousIpAddress}</a>`;
+  } else {
+    document.getElementById('lastIpLink').innerHTML = '';
+  }
+
+  previousIpAddress = data.ip;
+  ipAddress = data.ip;
+  realLocation = data.loc.split(',').map(Number);
+
+  let details = `IP: <strong>${ipAddress}</strong><br>ASN: ${data.org || 'N/A'}<br>`;
+  if (currentMode === 'normal') {
+    details += `AS Name: ${data.org?.split(' ').slice(1).join(' ') || 'N/A'}<br>`;
+    if (data.hostname) {
+      details += `Hostname: ${data.hostname}<br>`;
+    }
+  }
+
+  document.getElementById('status').innerHTML = details + 'Click on the map to drop your pin.';
+}
+
+async function fetchValidIPLocation() {
+  for (let i = 0; i < 15; i++) {
+    const ip = getRandomIP();
+    try {
+      const res = await fetch(`https://ipinfo.io/${ip}/json`);
+      const data = await res.json();
+      if (!data.bogon && data.loc) {
+        return data;
       }
+    } catch (e) {
+      continue;
     }
-    return null;
   }
+  return null;
+}
 
-  function clearMap() {
-    guessedItems.forEach(item => map.removeLayer(item));
-    guessedItems.length = 0;
-  }
+function getRandomIP() {
+  const octet = () => Math.floor(Math.random() * 256);
+  return `${octet()}.${octet()}.${octet()}.${octet()}`;
+}
 
-  function scoreFromDistance(km) {
-    if (km < 100) return 100;
-    if (km < 500) return 80;
-    if (km < 1000) return 60;
-    if (km < 3000) return 40;
-    if (km < 7000) return 20;
-    return 5;
-  }
+function clearMap() {
+  guessedItems.forEach(item => map.removeLayer(item));
+  guessedItems.length = 0;
+}
 
-  function animateDrop(latlng, color = 'red') {
-    const marker = L.circleMarker(latlng, {
-      radius: 0,
-      color: color,
-      fillColor: color,
-      fillOpacity: 0.8
-    }).addTo(map);
-    guessedItems.push(marker);
-    let radius = 0;
-    const grow = setInterval(() => {
-      radius += 1;
-      marker.setRadius(radius);
-      if (radius >= 8) clearInterval(grow);
-    }, 16);
-    return marker;
-  }
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const toRad = deg => deg * Math.PI / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
-  function animateLine(from, to) {
-    const polyline = L.polyline([from, from], {
-      color: 'purple',
-      weight: 2,
-      opacity: 0.7,
-      dashArray: '5, 10'
-    }).addTo(map);
-    guessedItems.push(polyline);
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 0.05;
-      if (progress >= 1) {
-        polyline.setLatLngs([from, to]);
-        clearInterval(interval);
-      } else {
-        const lat = from[0] + (to[0] - from[0]) * progress;
-        const lng = from[1] + (to[1] - from[1]) * progress;
-        polyline.setLatLngs([from, [lat, lng]]);
-      }
-    }, 30);
-  }
+function scoreFromDistance(km) {
+  if (km < 100) return 100;
+  if (km < 500) return 75;
+  if (km < 1000) return 50;
+  if (km < 2000) return 25;
+  return 10;
+}
 
-  async function startGame() {
-    infoBox.innerHTML = `Loading IP...`;
-    clearMap();
-    realLocation = null;
+map.on('click', function(e) {
+  if (!realLocation) return;
 
-    const result = await fetchValidIPLocation();
-    if (!result) {
-      infoBox.innerHTML = `Failed to load IP info. Try again.<br><button onclick="startGame()">Try Again</button>`;
-      return;
-    }
+  const guessLatLng = [e.latlng.lat, e.latlng.lng];
+  const markerGuess = L.marker(guessLatLng, {icon: L.icon({iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [24, 24]})}).addTo(map);
+  const markerReal = L.marker(realLocation, {icon: L.icon({iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [24, 24]})}).addTo(map);
 
-    ipAddress = result.ip;
-    realLocation = result.loc;
-    infoBox.innerHTML = `Guess the location of IP: <strong>${ipAddress}</strong><br>Click on the map to drop your pin.`;
-  }
+  const line = L.polyline([guessLatLng, realLocation], {color: 'green', dashArray: '5,10'}).addTo(map);
+  guessedItems.push(markerGuess, markerReal, line);
 
-  function resetGame() {
-    startGame();
-  }
+  const distance = haversineDistance(...guessLatLng, ...realLocation);
+  const score = scoreFromDistance(distance);
+  currentScore += score;
 
-  function initGame() {
-    const tokenField = document.getElementById("tokenInput");
-    if (!tokenField.value.trim()) {
-      alert("Please enter a valid IPinfo token.");
-      return;
-    }
-    ipinfoToken = tokenField.value.trim();
-    currentScore = 0;
-    startGame();
-  }
+  document.getElementById('result').innerHTML = `You were <strong>${distance.toFixed(1)} km</strong> away. You earned <strong>${score}</strong> points.`;
+  scoreDisplay.innerText = `Total Score: ${currentScore}`;
+  document.getElementById('status').innerText = '';
+  realLocation = null;
 
-  map.on('click', function(e) {
-    if (!realLocation) return;
-
-    const { lat, lng } = e.latlng;
-    const guess = [lat, lng];
-    const [realLat, realLng] = realLocation;
-    const actual = [realLat, realLng];
-
-    clearMap();
-
-    animateDrop(guess, 'red');
-    animateDrop(actual, 'blue');
-    animateLine(guess, actual);
-
-    const distance = haversineDistance(lat, lng, realLat, realLng).toFixed(2);
-    const roundScore = scoreFromDistance(distance);
-    currentScore += roundScore;
-
-    const bounds = L.latLngBounds(guess, actual);
-    map.fitBounds(bounds.pad(0.4));
-
-    infoBox.innerHTML = `
-      You guessed: ${lat.toFixed(2)}, ${lng.toFixed(2)}<br>
-      Actual: ${realLat.toFixed(2)}, ${realLng.toFixed(2)}<br>
-      Distance: <strong>${distance} km</strong><br>
-      Score this round: <strong>${roundScore}</strong><br>
-      Total Score: <strong>${currentScore}</strong><br><br>
-      <button onclick="resetGame()">Play Again</button>
-    `;
-  });
+  setTimeout(startGame, 5000);
+});
 </script>
-
 </body>
 </html>
