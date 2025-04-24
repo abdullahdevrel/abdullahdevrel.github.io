@@ -25,7 +25,7 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS5307']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = ['AS5307', 'AS749']; // List of ASNs for which the IP address should not be shown
 
 async function startGame() {
   if (!currentMode) {
@@ -60,10 +60,9 @@ async function startGame() {
   map.setView([20, 0], 3);
 
   let details = '';
+  details += `IP: <strong>${ipAddress}</strong><br>`;
   if (currentData.org) {
-    const asn = currentData.org.split(' ')[0]; // Extract ASN like AS12345
-    details += `IP: <strong>${ipAddress}</strong><br>`;
-    details += `ASN: <a href="https://ipinfo.io/${asn}" target="_blank">${currentData.org}</a><br>`;
+    details += `ASN: <a href="https://ipinfo.io/${currentData.org.split(' ')[0]}" target="_blank">${currentData.org}</a><br>`;
   }
   if (currentMode === 'normal' && currentData.hostname) {
     details += `Hostname: ${currentData.hostname}<br>`;
@@ -79,7 +78,8 @@ async function fetchValidIPLocation() {
       const res = await fetch(`https://ipinfo.io/${ip}/json`);
       const data = await res.json();
       // Skip if it's a bogon IP or belongs to an excluded ASN
-      if (!data.bogon && data.loc && (!data.org || !excludedASNs.includes(data.org.split(' ')[0]))) {
+      if (!data.bogon && data.loc && 
+          (data.org ? !excludedASNs.includes(data.org.split(' ')[0]) : true)) {
         return data;
       }
     } catch (e) {
@@ -286,6 +286,23 @@ guessButton.addEventListener('click', async () => {
   // Disable pin dropping
   map.off('click');
 
+  // Enable keyboard shortcuts for next IP
+  const handleNextIp = () => {
+    const nextButton = document.getElementById('nextIpButton');
+    if (nextButton) {
+      nextButton.click();
+    }
+  };
+
+  const nextIpKeyHandler = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleNextIp();
+    }
+  };
+
+  document.addEventListener('keydown', nextIpKeyHandler);
+
   // Save the guess data for the round
   guesses.push({
       ip: ipAddress,
@@ -306,6 +323,9 @@ guessButton.addEventListener('click', async () => {
 
   // Add event listener to the "Next IP?" button
   document.getElementById('nextIpButton').addEventListener('click', () => {
+      // Remove keyboard event listener
+      document.removeEventListener('keydown', nextIpKeyHandler);
+      
       // Revert footer content to default
       footer.innerHTML = `
           Guess where the IP is located by clicking on the map.<br>
