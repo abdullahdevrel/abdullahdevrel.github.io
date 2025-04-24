@@ -1,0 +1,39 @@
+body, html { margin: 0; padding: 0; height: 100%; }
+#map { height: 100%; width: 100%; position: absolute; }
+#info {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  z-index: 1000;
+  max-width: 300px;
+}
+#info select, #info button {
+  margin-top: 10px;
+  padding: 5px;
+  width: 100%;
+}
+#modeSelector, #startButton {
+  display: block;
+}
+#info.playing #modeSelector, #info.playing #startButton {
+  display: none;
+}
+#scoreDisplay {
+  font-weight: bold;
+  margin-top: 10px;
+}
+#footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(255,255,255,0.95);
+  padding: 10px;
+  font-size: 14px;
+  text-align: center;
+  z-index: 999;
+}
