@@ -62,10 +62,8 @@ async function startGame() {
   let details = '';
   if (currentData.org) {
     const asn = currentData.org.split(' ')[0]; // Extract ASN like AS12345
-    if (!excludedASNs.includes(asn)) {
-      details += `IP: <strong>${ipAddress}</strong><br>`;
-      details += `ASN: <a href="https://ipinfo.io/${asn}" target="_blank">${currentData.org}</a><br>`;
-    }
+    details += `IP: <strong>${ipAddress}</strong><br>`;
+    details += `ASN: <a href="https://ipinfo.io/${asn}" target="_blank">${currentData.org}</a><br>`;
   }
   if (currentMode === 'normal' && currentData.hostname) {
     details += `Hostname: ${currentData.hostname}<br>`;
@@ -80,7 +78,8 @@ async function fetchValidIPLocation() {
     try {
       const res = await fetch(`https://ipinfo.io/${ip}/json`);
       const data = await res.json();
-      if (!data.bogon && data.loc) {
+      // Skip if it's a bogon IP or belongs to an excluded ASN
+      if (!data.bogon && data.loc && (!data.org || !excludedASNs.includes(data.org.split(' ')[0]))) {
         return data;
       }
     } catch (e) {
