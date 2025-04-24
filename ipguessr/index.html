@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script data-goatcounter="https://reincoder.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="summary.css">
 </head>
 
 <body>
@@ -21,8 +22,8 @@
     <button id="startButton" onclick="startGame()">Start Game</button>
     <div id="result"></div>
     <div id="scoreDisplay">Total Score: <strong>0</strong></div>
-    <div id="summary"></div>
   </div>
+  <div id="summary"></div>
   <div id="footer">
     Guess where the IP is located by clicking on the map.<br>
     The closer your guess, the higher your score.<br>
@@ -31,6 +32,8 @@
     <div id="lastIpLink"></div>
   </div>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="summary.js"></script>
   <script src="script.js"></script>
 </body>
 

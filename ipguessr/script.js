@@ -77,9 +77,9 @@ async function fetchValidIPLocation() {
     try {
       const res = await fetch(`https://ipinfo.io/${ip}/json`);
       const data = await res.json();
-      // Skip if it's a bogon IP or belongs to an excluded ASN
-      if (!data.bogon && data.loc && 
-          (data.org ? !excludedASNs.includes(data.org.split(' ')[0]) : true)) {
+      // Skip if it's a bogon IP, has no location, no org field, or belongs to an excluded ASN
+      if (!data.bogon && data.loc && data.org && 
+          !excludedASNs.includes(data.org.split(' ')[0])) {
         return data;
       }
     } catch (e) {
@@ -186,43 +186,55 @@ async function getLocationDetails(latLng) {
 }
 
 function showSummary() {
-  document.getElementById('result').innerHTML = '';
-  document.getElementById('status').innerHTML = '';
-  document.getElementById('modeSelector').outerHTML = '';
-  document.getElementById('startButton').outerHTML = '';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('status').innerHTML = '';
+    document.getElementById('modeSelector').outerHTML = '';
+    document.getElementById('startButton').outerHTML = '';
 
-let summaryHTML = '<h3>Game Summary</h3><ul style="padding-left: 20px;">';
-let totalDistance = 0;
+    const summaryHTML = createSummaryCard(guesses, currentScore);
+    const summaryDiv = document.getElementById('summary');
+    summaryDiv.innerHTML = summaryHTML;
+    summaryDiv.classList.add('visible');  // Add this line to show the summary
+    infoDiv.classList.remove('playing');
 
-guesses.forEach((guess, index) => {
-  const guessed = guess.guessedLocation;
-  const real = guess.realLocation;
-  const ip = guess.ip;
+    // Add screenshot functionality
+    document.getElementById('shareButton').addEventListener('click', async () => {
+        const summaryCard = document.querySelector('.summary-card');
+        try {
+            // Create a canvas from the summary card
+            const canvas = await html2canvas(summaryCard, {
+                backgroundColor: null,
+                scale: 2, // Higher quality
+            });
+            
+            // Convert to blob
+            canvas.toBlob((blob) => {
+                // Try native share if available
+                if (navigator.share && navigator.canShare) {
+                    navigator.share({
+                        files: [new File([blob], 'ipguessr-result.png', { type: 'image/png' })],
+                        title: 'My IP Guessr Results',
+                        text: `I scored ${currentScore} points in IP Guessr! Can you beat my score?`
+                    }).catch(() => {
+                        // Fallback to download if sharing fails
+                        downloadImage(canvas);
+                    });
+                } else {
+                    // Fallback to download
+                    downloadImage(canvas);
+                }
+            }, 'image/png');
+        } catch (error) {
+            console.error('Error creating screenshot:', error);
+        }
+    });
+}
 
-  const cityMatch = guessed.city === real.city;
-  const regionMatch = guessed.region === real.region;
-  const countryMatch = guessed.country === real.country;
-
-  totalDistance += guess.distance;
-
-  summaryHTML += `
-    <li style="margin-bottom: 10px;">
-      <strong>Guess ${index + 1}</strong> - 
-      <a href="https://ipinfo.io/${ip}" target="_blank">${ip}</a><br>
-      City: ${guessed.city} ${cityMatch ? '✅' : '❌'} vs ${real.city}<br>
-      Region: ${guessed.region} ${regionMatch ? '✅' : '❌'} vs ${real.region}<br>
-      Country: ${guessed.country} ${countryMatch ? '✅' : '❌'} vs ${real.country}<br>
-      Distance: ${guess.distance.toFixed(1)} km - Score: ${guess.score}
-    </li>
-  `;
-});
-
-const averageDistance = (totalDistance / guesses.length).toFixed(1);
-summaryHTML += '</ul>';
-summaryHTML += `<p><strong>Average Distance:</strong> ${averageDistance} km</p>`;
-
-document.getElementById('summary').innerHTML = summaryHTML;
-infoDiv.classList.remove('playing');
+function downloadImage(canvas) {
+    const link = document.createElement('a');
+    link.download = 'ipguessr-result.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
 
 const guessButton = document.createElement('button');

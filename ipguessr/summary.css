@@ -1,0 +1,129 @@
+.summary-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    min-height: 100vh;
+    width: 100%;
+    margin: 0;
+    padding: 3rem;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.summary-card h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    background: linear-gradient(90deg, #00d4ff, #7900ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #00d4ff;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.guesses-list {
+    width: 100%;
+    max-width: 900px;
+    margin: 2rem 0;
+}
+
+.guess-item {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.guess-item:hover {
+    transform: translateX(5px);
+}
+
+.guess-number {
+    font-weight: bold;
+    margin-right: 1rem;
+    color: #888;
+}
+
+.guess-emoji {
+    font-size: 1.2rem;
+    margin-right: 1rem;
+}
+
+.guess-distance {
+    flex: 1;
+    color: #00d4ff;
+}
+
+.guess-score {
+    font-weight: bold;
+    color: #00ff9d;
+}
+
+.performance-message {
+    text-align: center;
+    font-size: 1.5rem;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: #00ff9d;
+    width: 100%;
+    max-width: 900px;
+}
+
+.share-button {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #00d4ff, #7900ff);
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-bottom: 1rem;
+}
+
+.share-button:hover {
+    opacity: 0.9;
+}
+
+.footer-text {
+    text-align: center;
+    color: #888;
+    font-size: 1rem;
+    margin-top: auto;
+    padding: 2rem 0;
+}
