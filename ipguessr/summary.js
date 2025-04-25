@@ -6,14 +6,6 @@ function getEmoji(distance) {
     return '✈️';
 }
 
-function getPerformanceMessage(avgDistance) {
-    if (avgDistance < 100) return "You're a geography genius! 🏆";
-    if (avgDistance < 500) return "Outstanding performance! 🌟";
-    if (avgDistance < 1000) return "Great job! 🎉";
-    if (avgDistance < 2000) return "Not bad at all! 💪";
-    return "Keep practicing! 📚";
-}
-
 function createSummaryCard(guesses, totalScore, totalTime) {
     const avgDistance = guesses.reduce((acc, guess) => acc + guess.distance, 0) / guesses.length;
     const perfectGuesses = guesses.filter(g => g.distance < 100).length;
@@ -82,9 +74,6 @@ function createSummaryCard(guesses, totalScore, totalTime) {
                         </div>
                     </div>
                 `).join('')}
-            </div>
-            <div class="performance-message">
-                ${getPerformanceMessage(avgDistance)}
             </div>
             <button onclick="location.reload()" class="play-again-button">Play Again 🎮</button>
             <div class="footer-text">
