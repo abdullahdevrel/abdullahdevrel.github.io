@@ -91,25 +91,6 @@
     color: var(--accent-200);
 }
 
-.share-button {
-    display: block;
-    width: 100%;
-    padding: 1rem;
-    border: none;
-    border-radius: 8px;
-    background: var(--accent-100);
-    color: var(--text-100);
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 1rem;
-}
-
-.share-button:hover {
-    background: var(--primary-200);
-    transform: translateY(-2px);
-}
-
 .footer-text {
     text-align: center;
     color: var(--text-200);

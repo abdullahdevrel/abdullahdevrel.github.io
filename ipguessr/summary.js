@@ -48,7 +48,6 @@ function createSummaryCard(guesses, totalScore) {
             <div class="performance-message">
                 ${getPerformanceMessage(avgDistance)}
             </div>
-            <button id="shareButton" class="share-button">Share Results 📷</button>
             <div class="footer-text">
                 Play at ipguessr.abdullahdevrel.io
             </div>

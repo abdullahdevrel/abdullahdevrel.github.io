@@ -1,5 +1,6 @@
 const map = L.map('map', {
-    zoomControl: false  // This will hide the zoom controls
+    zoomControl: false,  // This will hide the zoom controls
+    duration: 0.8  // Duration of animation in seconds
 }).setView([20, 0], 3);
 L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -38,7 +39,12 @@ async function startGame() {
   clearMap();
   document.getElementById('result').innerHTML = '';
   document.getElementById('status').innerText = 'Fetching a new IP...';
-  infoDiv.classList.add('playing');
+  
+  // Remove mode selector and start button if they exist
+  const modeSelector = document.getElementById('modeSelector');
+  const startButton = document.getElementById('startButton');
+  if (modeSelector) modeSelector.remove();
+  if (startButton) startButton.remove();
 
   const fetchedData = await fetchValidIPLocation();
   if (!fetchedData) {
@@ -59,7 +65,10 @@ async function startGame() {
   previousIpAddress = currentData.ip;
   ipAddress = currentData.ip;
   realLocation = currentData.loc.split(',').map(Number);
-  map.setView([20, 0], 3);
+  map.flyTo([20, 0], 3, {
+    duration: 0.8,
+    easeLinearity: 0.5
+  });
 
   let details = '';
   details += `IP: <strong>${ipAddress}</strong><br>`;
@@ -190,53 +199,18 @@ async function getLocationDetails(latLng) {
 function showSummary() {
     document.getElementById('result').innerHTML = '';
     document.getElementById('status').innerHTML = '';
-    document.getElementById('modeSelector').outerHTML = '';
-    document.getElementById('startButton').outerHTML = '';
+    
+    // Safely remove elements if they exist
+    const modeSelector = document.getElementById('modeSelector');
+    const startButton = document.getElementById('startButton');
+    if (modeSelector) modeSelector.remove();
+    if (startButton) startButton.remove();
 
     const summaryHTML = createSummaryCard(guesses, currentScore);
     const summaryDiv = document.getElementById('summary');
     summaryDiv.innerHTML = summaryHTML;
-    summaryDiv.classList.add('visible');  // Add this line to show the summary
+    summaryDiv.classList.add('visible');
     infoDiv.classList.remove('playing');
-
-    // Add screenshot functionality
-    document.getElementById('shareButton').addEventListener('click', async () => {
-        const summaryCard = document.querySelector('.summary-card');
-        try {
-            // Create a canvas from the summary card
-            const canvas = await html2canvas(summaryCard, {
-                backgroundColor: null,
-                scale: 2, // Higher quality
-            });
-            
-            // Convert to blob
-            canvas.toBlob((blob) => {
-                // Try native share if available
-                if (navigator.share && navigator.canShare) {
-                    navigator.share({
-                        files: [new File([blob], 'ipguessr-result.png', { type: 'image/png' })],
-                        title: 'My IP Guessr Results',
-                        text: `I scored ${currentScore} points in IP Guessr! Can you beat my score?`
-                    }).catch(() => {
-                        // Fallback to download if sharing fails
-                        downloadImage(canvas);
-                    });
-                } else {
-                    // Fallback to download
-                    downloadImage(canvas);
-                }
-            }, 'image/png');
-        } catch (error) {
-            console.error('Error creating screenshot:', error);
-        }
-    });
-}
-
-function downloadImage(canvas) {
-    const link = document.createElement('a');
-    link.download = 'ipguessr-result.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
 }
 
 const guessButton = document.createElement('button');
