@@ -14,9 +14,12 @@ function getPerformanceMessage(avgDistance) {
     return "Keep practicing! 📚";
 }
 
-function createSummaryCard(guesses, totalScore) {
+function createSummaryCard(guesses, totalScore, totalTime) {
     const avgDistance = guesses.reduce((acc, guess) => acc + guess.distance, 0) / guesses.length;
     const perfectGuesses = guesses.filter(g => g.distance < 100).length;
+    const minutes = Math.floor((totalTime / (1000 * 60)) % 60);
+    const seconds = Math.floor((totalTime / 1000) % 60);
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     
     const cardHTML = `
         <div class="summary-card">
@@ -33,6 +36,10 @@ function createSummaryCard(guesses, totalScore) {
                 <div class="stat-item">
                     <span class="stat-value">${perfectGuesses}</span>
                     <span class="stat-label">Perfect Guesses</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">${timeStr}</span>
+                    <span class="stat-label">Time</span>
                 </div>
             </div>
             <div class="guesses-list">

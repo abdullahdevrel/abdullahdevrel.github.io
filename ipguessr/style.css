@@ -104,6 +104,19 @@ body, html {
     color: var(--accent-200);
 }
 
+#timeDisplay {
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    background: var(--bg-300);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+#timeDisplay strong {
+    color: var(--accent-200);
+}
+
 #footer {
     position: absolute;
     bottom: 0;

@@ -17,6 +17,11 @@ let currentMode = localStorage.getItem('ipGuessMode') || '';
 let guessCount = 0; // Tracks number of guesses
 let currentData = null; // Store data globally for access in event handler
 
+// Add timer variables at the top with other global variables
+let startTime = null;
+let timerInterval = null;
+let totalTime = 0;
+
 const modeSelector = document.getElementById('modeSelector');
 modeSelector.value = currentMode;
 
@@ -28,7 +33,37 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS5307', 'AS749', 'AS721']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796']; // List of ASNs for which the IP address should not be shown
+
+function formatTime(ms) {
+    const seconds = Math.floor((ms / 1000) % 60);
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function updateTimer() {
+    if (!startTime) return;
+    const timeDisplay = document.getElementById('timeDisplay');
+    if (timeDisplay) {
+        const currentTime = Date.now() - startTime;
+        timeDisplay.innerHTML = `Time: <strong>${formatTime(currentTime)}</strong>`;
+    }
+}
+
+function startTimer() {
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 1000);
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    if (startTime) {
+        totalTime = Date.now() - startTime;
+    }
+}
 
 async function startGame() {
   if (!currentMode) {
@@ -39,6 +74,15 @@ async function startGame() {
   clearMap();
   document.getElementById('result').innerHTML = '';
   document.getElementById('status').innerText = 'Fetching a new IP...';
+  
+  // Only create time display and start timer if this is the first round (no guesses yet)
+  if (guessCount === 0) {
+    const timeDisplay = document.createElement('div');
+    timeDisplay.id = 'timeDisplay';
+    timeDisplay.innerHTML = 'Time: <strong>0:00</strong>';
+    document.getElementById('info').insertBefore(timeDisplay, document.getElementById('status'));
+    startTimer();
+  }
   
   // Remove mode selector and start button if they exist
   const modeSelector = document.getElementById('modeSelector');
@@ -200,13 +244,16 @@ function showSummary() {
     document.getElementById('result').innerHTML = '';
     document.getElementById('status').innerHTML = '';
     
+    // Stop the timer
+    stopTimer();
+    
     // Safely remove elements if they exist
     const modeSelector = document.getElementById('modeSelector');
     const startButton = document.getElementById('startButton');
     if (modeSelector) modeSelector.remove();
     if (startButton) startButton.remove();
 
-    const summaryHTML = createSummaryCard(guesses, currentScore);
+    const summaryHTML = createSummaryCard(guesses, currentScore, totalTime);
     const summaryDiv = document.getElementById('summary');
     summaryDiv.innerHTML = summaryHTML;
     summaryDiv.classList.add('visible');
