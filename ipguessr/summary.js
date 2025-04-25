@@ -61,10 +61,12 @@ function createSummaryCard(guesses, totalScore, totalTime) {
                                         <span class="button-icon">🔍</span>
                                         <span class="button-text">IP</span>
                                     </a>
-                                    <a href="https://ipinfo.io/${guess.org ? guess.org.split(' ')[0] : ''}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
+                                    ${guess.org ? `
+                                    <a href="https://ipinfo.io/${guess.org.split(' ')[0]}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
                                         <span class="button-icon">🌐</span>
                                         <span class="button-text">ASN</span>
                                     </a>
+                                    ` : ''}
                                     <a href="https://ipinfo.io/countries/${guess.realLocation.country.toLowerCase()}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
                                         <span class="button-icon">🗺️</span>
                                         <span class="button-text">Country</span>

@@ -286,6 +286,23 @@ guessButton.addEventListener('click', async () => {
   const line = L.polyline([guessLatLng, realLocation], { color: 'green', dashArray: '5,10' }).addTo(map);
   guessedItems.push(markerReal, line);
 
+  // Create a bounds object that includes both pins
+  const bounds = L.latLngBounds([guessLatLng, realLocation]);
+  
+  // Get the current zoom level
+  const currentZoom = map.getZoom();
+  
+  // Fit the map to the bounds with more padding and a lower max zoom
+  map.fitBounds(bounds, {
+    padding: [100, 100], // Increased padding from 50 to 100
+    maxZoom: 8  // Reduced from 12 to 8 to prevent zooming in too close
+  });
+  
+  // If we're too zoomed out (zoom < 3), set a minimum zoom
+  if (map.getZoom() < 3) {
+    map.setZoom(3);
+  }
+
   // Calculate the distance and score
   const distance = haversineDistance(...guessLatLng, ...realLocation);
   const score = scoreFromDistance(distance);
@@ -332,6 +349,7 @@ guessButton.addEventListener('click', async () => {
       ip: ipAddress,
       distance,
       score,
+      org: currentData.org, // Add the ASN information
       guessedLocation: locationDetails,
       realLocation: {
           city: currentData.city || 'Unknown',
