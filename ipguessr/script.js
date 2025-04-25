@@ -294,7 +294,7 @@ guessButton.addEventListener('click', async () => {
   
   // Fit the map to the bounds with more padding and a lower max zoom
   map.fitBounds(bounds, {
-    padding: [100, 100], // Increased padding from 50 to 100
+    padding: [200, 200], // Increased padding from 50 to 100
     maxZoom: 8  // Reduced from 12 to 8 to prevent zooming in too close
   });
   
