@@ -27,3 +27,15 @@
   - AS7018 AT&T Enterprises, LLC
   - AS3269 Telecom Italia S.p.A.
   - AS367 DoD Network Information Center
+  - AS17858 LG POWERCOMM
+  - AS3561 CenturyLink Communications, LLC
+  - AS3257 GTT Communications Inc.
+  - AS2514 NTT PC Communications, Inc.
+  - AS12322 Free SAS
+  - AS174 Cogent Communications
+  - AS35807 SkyNet Ltd.
+  - AS20940 Akamai International B.V.
+  - AS9158 Telenor A/S
+  - AS9605 NTT DOCOMO, INC.
+  - AS20115 Charter Communications LLC
+  - AS3209 Vodafone GmbH
