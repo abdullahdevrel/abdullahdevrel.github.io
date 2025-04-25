@@ -47,12 +47,14 @@
 
 .guess-item {
     display: flex;
+    flex-direction: column;
     align-items: center;
     padding: 0.8rem;
     margin-bottom: 0.5rem;
     background: var(--bg-300);
     border-radius: 8px;
     transition: transform 0.2s;
+    cursor: pointer;
 }
 
 .guess-item:hover {
@@ -81,6 +83,62 @@
     color: var(--accent-200);
 }
 
+.guess-ip {
+    margin-right: 1rem;
+}
+
+.guess-ip a {
+    color: var(--primary-300);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.guess-ip a:hover {
+    color: var(--accent-200);
+    text-decoration: underline;
+}
+
+.guess-summary {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    width: 100%;
+}
+
+.guess-details {
+    display: none;
+    padding: 1rem;
+    border-top: 1px solid var(--bg-200);
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.guess-item.expanded .guess-details {
+    display: block;
+}
+
+.detail-item {
+    display: block;
+    margin-bottom: 1rem;
+    color: var(--text-200);
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    display: block;
+    color: var(--accent-200);
+    margin-bottom: 0.5rem;
+}
+
+.detail-value {
+    display: block;
+    padding-left: 1.5rem;
+    color: var(--text-100);
+}
+
 .performance-message {
     text-align: center;
     font-size: 1.2rem;
@@ -95,4 +153,67 @@
     text-align: center;
     color: var(--text-200);
     font-size: 0.9rem;
+}
+
+.play-again-button {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-100);
+    color: var(--text-100);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.play-again-button:hover {
+    background: var(--primary-200);
+    transform: translateY(-2px);
+}
+
+.detail-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.detail-content {
+    flex: 1;
+}
+
+.detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-200);
+    border-radius: 6px;
+    color: var(--text-100);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.detail-button:hover {
+    background: var(--primary-200);
+    transform: translateX(-2px);
+}
+
+.button-icon {
+    font-size: 1.1rem;
+}
+
+.button-text {
+    font-size: 0.9rem;
+    color: var(--text-200);
 }

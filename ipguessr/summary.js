@@ -44,17 +44,49 @@ function createSummaryCard(guesses, totalScore, totalTime) {
             </div>
             <div class="guesses-list">
                 ${guesses.map((guess, index) => `
-                    <div class="guess-item">
-                        <span class="guess-number">#${index + 1}</span>
-                        <span class="guess-emoji">${getEmoji(guess.distance)}</span>
-                        <span class="guess-distance">${guess.distance.toFixed(0)}km</span>
-                        <span class="guess-score">+${guess.score}</span>
+                    <div class="guess-item" onclick="this.classList.toggle('expanded')">
+                        <div class="guess-summary">
+                            <span class="guess-number">#${index + 1}</span>
+                            <span class="guess-emoji">${getEmoji(guess.distance)}</span>
+                            <span class="guess-ip"><a href="https://ipinfo.io/${guess.ip}" target="_blank" onclick="event.stopPropagation()">${guess.ip}</a></span>
+                            <span class="guess-distance">${guess.distance.toFixed(0)}km</span>
+                            <span class="guess-score">+${guess.score}</span>
+                        </div>
+                        <div class="guess-details">
+                            <div class="detail-section">
+                                <div class="detail-content">
+                                    <div class="detail-item">
+                                        <span class="detail-label">📍 IP Location:</span>
+                                        <span class="detail-value">${guess.realLocation.city}, ${guess.realLocation.region}, ${guess.realLocation.country}</span>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">🎯 Your Guess:</span>
+                                        <span class="detail-value">${guess.guessedLocation.city}, ${guess.guessedLocation.region}, ${guess.guessedLocation.country}</span>
+                                    </div>
+                                </div>
+                                <div class="detail-actions">
+                                    <a href="https://ipinfo.io/${guess.ip}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
+                                        <span class="button-icon">🔍</span>
+                                        <span class="button-text">IP</span>
+                                    </a>
+                                    <a href="https://ipinfo.io/${guess.org ? guess.org.split(' ')[0] : ''}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
+                                        <span class="button-icon">🌐</span>
+                                        <span class="button-text">ASN</span>
+                                    </a>
+                                    <a href="https://ipinfo.io/countries/${guess.realLocation.country.toLowerCase()}" class="detail-button" target="_blank" onclick="event.stopPropagation()">
+                                        <span class="button-icon">🗺️</span>
+                                        <span class="button-text">Country</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `).join('')}
             </div>
             <div class="performance-message">
                 ${getPerformanceMessage(avgDistance)}
             </div>
+            <button onclick="location.reload()" class="play-again-button">Play Again 🎮</button>
             <div class="footer-text">
                 Play at ipguessr.abdullahdevrel.io
             </div>

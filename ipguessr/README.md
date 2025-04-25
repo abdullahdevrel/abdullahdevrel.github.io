@@ -15,3 +15,4 @@
   - AS20214 Comcast Cable Communications, LLC
   - AS16509 Amazon.com, Inc.
   - AS10796 Charter Communications Inc
+  - AS7377 University of California, San Diego

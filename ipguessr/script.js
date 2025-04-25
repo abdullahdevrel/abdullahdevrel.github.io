@@ -33,7 +33,7 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796', 'AS7377']; // List of ASNs for which the IP address should not be shown
 
 function formatTime(ms) {
     const seconds = Math.floor((ms / 1000) % 60);
