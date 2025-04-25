@@ -1,4 +1,6 @@
-const map = L.map('map').setView([20, 0], 3);
+const map = L.map('map', {
+    zoomControl: false  // This will hide the zoom controls
+}).setView([20, 0], 3);
 L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
   maxZoom: 18
@@ -25,7 +27,7 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS5307', 'AS749']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = ['AS5307', 'AS749', 'AS721']; // List of ASNs for which the IP address should not be shown
 
 async function startGame() {
   if (!currentMode) {
@@ -49,7 +51,7 @@ async function startGame() {
 
   // Update the last IP address link if there's a previous one
   if (previousIpAddress) {
-    document.getElementById('lastIpLink').innerHTML = `Last IP address: <a href="https://ipinfo.io/${previousIpAddress}" target="_blank">${previousIpAddress}</a>`;
+    document.getElementById('lastIpLink').innerHTML = `Last IP: <a href="https://ipinfo.io/${previousIpAddress}" target="_blank">${previousIpAddress}</a>`;
   } else {
     document.getElementById('lastIpLink').innerHTML = '';
   }
@@ -239,20 +241,9 @@ function downloadImage(canvas) {
 
 const guessButton = document.createElement('button');
 guessButton.innerHTML = 'Guess';
-guessButton.style.display = 'none'; // Initially hidden
-guessButton.style.position = 'absolute';
-guessButton.style.bottom = '100px'; // Increased bottom value
-guessButton.style.left = '50%';
-guessButton.style.transform = 'translateX(-50%)';
-guessButton.style.padding = '10px 20px';
-guessButton.style.backgroundColor = '#007bff';
-guessButton.style.color = '#fff';
-guessButton.style.border = 'none';
-guessButton.style.borderRadius = '5px';
-guessButton.style.fontSize = '16px';
-guessButton.style.cursor = 'pointer';
-guessButton.style.zIndex = '9999'; // Ensure the button is above all other elements
-document.body.appendChild(guessButton); // Append button to the body
+guessButton.id = 'guessButton';
+guessButton.style.display = 'none'; // Only keeping this as it's dynamically toggled
+document.body.appendChild(guessButton);
 
 guessButton.addEventListener('click', async () => {
   if (!realLocation || !currentData) return;
@@ -284,13 +275,13 @@ guessButton.addEventListener('click', async () => {
   // Update the footer with redesigned results
   const footer = document.getElementById('footer');
   footer.innerHTML = `
-      <div style="padding: 20px; background-color: #f9f9f9; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); text-align: center;">
-          <p style="font-size: 18px; margin: 10px 0;">📍 <strong>${currentData.city || 'Unknown'}, ${currentData.region || 'Unknown'}, ${currentData.country || 'Unknown'}</strong> (${locationDetails.city === currentData.city ? '✅' : '❌'})</p>
-          <p style="font-size: 16px; margin: 10px 0;">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong>Score ${score}</strong></p>
-          <p style="font-size: 16px; margin: 10px 0;">Total Score: <strong>${currentScore}</strong></p>
-          <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-              <a href="https://ipinfo.io/${ipAddress}" target="_blank" style="padding: 10px 20px; background-color: #007bff; color: #fff; text-decoration: none; border-radius: 5px; font-size: 16px;">🔍 ${ipAddress}</a>
-              <button id="nextIpButton" style="padding: 10px 20px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">Next IP?</button>
+      <div class="result-container">
+          <p class="result-location">📍 <strong>${currentData.city || 'Unknown'}, ${currentData.region || 'Unknown'}, ${currentData.country || 'Unknown'}</strong> ${locationDetails.city === currentData.city ? '✅' : '❌'}</p>
+          <p class="result-distance">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong class="score-highlight">+${score}</strong></p>
+          <p class="result-total">Total Score: <strong class="score-highlight">${currentScore}</strong></p>
+          <div class="result-actions">
+              <a href="https://ipinfo.io/${ipAddress}" target="_blank" class="result-button ip-button">🔍 ${ipAddress}</a>
+              <button id="nextIpButton" class="result-button next-button">Next IP ➜</button>
           </div>
       </div>
   `;
@@ -343,8 +334,10 @@ guessButton.addEventListener('click', async () => {
           Guess where the IP is located by clicking on the map.<br>
           The closer your guess, the higher your score.<br>
           You can keep playing in your selected mode until the page is reloaded.<br>
-          <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong><br>
-          <div id="lastIpLink"></div>
+          <div class="footer-credits">
+            <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong>
+            <span id="lastIpLink"></span>
+          </div>
       `;
 
       // Re-enable pin dropping
