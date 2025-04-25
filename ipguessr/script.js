@@ -33,7 +33,7 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796', 'AS7377']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796', 'AS7377', 'AS7922', 'AS7792', 'AS4766', 'AS334', 'AS7738', 'AS3320', 'AS701', 'AS4713', 'AS7018', 'AS3269', 'AS367']; // List of ASNs for which the IP address should not be shown
 
 function formatTime(ms) {
     const seconds = Math.floor((ms / 1000) % 60);
@@ -404,7 +404,7 @@ guessButton.addEventListener('click', async () => {
           guessButton.dataset.lng = guessLatLng.lng;
       });
 
-      if (guessCount >= 5) {
+      if (guessCount >= 10) { // Changed from 5 to 10 rounds
           showSummary(); // Show summary if the game is over
       } else {
           currentData = null; // Clear the current data

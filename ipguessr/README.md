@@ -16,3 +16,14 @@
   - AS16509 Amazon.com, Inc.
   - AS10796 Charter Communications Inc
   - AS7377 University of California, San Diego
+  - AS7922 Comcast Cable Communications, LLC
+  - AS7792 3M Company
+  - AS4766 Korea Telecom
+  - AS334 DoD Network Information Center
+  - AS7738 V tal
+  - AS3320 Deutsche Telekom AG
+  - AS701 Verizon Business
+  - AS4713 NTT Communications Corporation
+  - AS7018 AT&T Enterprises, LLC
+  - AS3269 Telecom Italia S.p.A.
+  - AS367 DoD Network Information Center
