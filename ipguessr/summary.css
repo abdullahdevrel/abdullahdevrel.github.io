@@ -214,7 +214,6 @@
     font-size: 1.1rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-bottom: 1rem;
 }
 
 .play-again-button:hover {
@@ -283,6 +282,7 @@
     display: flex;
     justify-content: center;
     gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .share-button {
