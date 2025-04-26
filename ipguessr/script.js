@@ -271,6 +271,19 @@ function showSummary() {
     infoDiv.classList.remove('playing');
 }
 
+// Function to reset footer to default
+function resetFooter() {
+    footer.innerHTML = `
+        Click on the map to guess the IP's location. Score based on distance!<br>
+        Press Space or Enter to submit. Keep playing until page reload!<br>
+        For feedback/feature requests reach out to <a href="https://www.linkedin.com/in/reincoder/" target="_blank">Abdullah</a> (DevRel of IPinfo)<br>
+        <div class="footer-credits">
+            <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong>
+            <span id="lastIpLink"></span>
+        </div>
+    `;
+}
+
 const guessButton = document.createElement('button');
 guessButton.innerHTML = 'Guess';
 guessButton.id = 'guessButton';
@@ -418,15 +431,7 @@ guessButton.addEventListener('click', async () => {
       document.removeEventListener('keydown', nextIpKeyHandler);
       
       // Revert footer content to default
-      footer.innerHTML = `
-          Guess where the IP is located by clicking on the map.<br>
-          The closer your guess, the higher your score.<br>
-          You can keep playing in your selected mode until the page is reloaded.<br>
-          <div class="footer-credits">
-            <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong>
-            <span id="lastIpLink"></span>
-          </div>
-      `;
+      resetFooter();
 
       // Re-enable pin dropping
       map.on('click', function (e) {

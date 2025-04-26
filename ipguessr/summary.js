@@ -101,7 +101,8 @@ export function createSummaryCard(guesses, totalScore, totalTime) {
                 `).join('')}
             </div>
             <div class="footer-text">
-                Play at abdullahdevrel.github.io/ipguessr
+                For feedback/feature requests reach out to <a href="https://www.linkedin.com/in/reincoder/" target="_blank">Abdullah</a> (DevRel of IPinfo).<br>
+                Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a>
             </div>
         </div>
         <div class="summary-map-container">
