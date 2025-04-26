@@ -147,6 +147,27 @@ body, html {
     gap: 0.5rem;
 }
 
+#footer .result-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.result-info {
+    flex: 1;
+}
+
+.result-map {
+    width: 300px;
+    height: 200px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid var(--bg-300);
+}
+
 #lastIpLink:not(:empty)::before {
     content: '|';
     margin: 0 0.5rem;

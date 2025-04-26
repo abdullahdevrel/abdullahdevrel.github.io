@@ -15,8 +15,13 @@ export function createSummaryCard(guesses, totalScore, totalTime) {
     const seconds = Math.floor((totalTime / 1000) % 60);
     const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     
+    // Find the best guess (shortest distance)
+    const bestGuess = guesses.reduce((best, current) => 
+        current.distance < best.distance ? current : best
+    , guesses[0]);
+    
     const cardHTML = `
-        <div class="summary-card">
+        <div class="summary-content">
             <h2>🎮 IP Guessr Results 🎮</h2>
             <div class="stats">
                 <div class="stat-item">
@@ -84,7 +89,61 @@ export function createSummaryCard(guesses, totalScore, totalTime) {
                 Play at ipguessr.abdullahdevrel.io
             </div>
         </div>
+        <div class="summary-map-container">
+            <div class="map-title">🏆 Best Guess</div>
+            <div class="summary-map" id="summaryMap"></div>
+            <div class="map-details">
+                <p>📍 <strong>IP:</strong> <a href="https://ipinfo.io/${bestGuess.ip}" target="_blank">${bestGuess.ip}</a></p>
+                <p>🎯 <strong>Actual Location:</strong> ${bestGuess.realLocation.city}, ${bestGuess.realLocation.region}, ${bestGuess.realLocation.country}</p>
+                <p>🌍 <strong>Your Guess:</strong> ${bestGuess.guessedLocation.city}, ${bestGuess.guessedLocation.region}, ${bestGuess.guessedLocation.country}</p>
+                <p>📏 <strong>Distance:</strong> ${bestGuess.distance.toFixed(1)} km</p>
+            </div>
+        </div>
     `;
     
-    return cardHTML;
+    // Wait for the next tick to ensure the map container is in the DOM
+    setTimeout(() => {
+        const summaryMap = L.map('summaryMap', {
+            zoomControl: false,
+            attributionControl: false
+        });
+
+        L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 18
+        }).addTo(summaryMap);
+
+        // Add markers for the best guess
+        const guessLatLng = [bestGuess.guessedLat, bestGuess.guessedLng];
+        const realLatLng = [bestGuess.realLat, bestGuess.realLng];
+
+        const guessMarker = L.marker(guessLatLng, {
+            icon: L.icon({ 
+                iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', 
+                iconSize: [24, 24] 
+            })
+        }).addTo(summaryMap);
+
+        const realMarker = L.marker(realLatLng, {
+            icon: L.icon({ 
+                iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', 
+                iconSize: [24, 24] 
+            })
+        }).addTo(summaryMap);
+
+        // Draw a line between the points
+        const line = L.polyline([guessLatLng, realLatLng], { 
+            color: 'green', 
+            dashArray: '5,10',
+            weight: 2
+        }).addTo(summaryMap);
+
+        // Fit the map to show both markers
+        const bounds = L.latLngBounds([guessLatLng, realLatLng]);
+        summaryMap.fitBounds(bounds, {
+            padding: [50, 50],
+            maxZoom: 8
+        });
+    }, 0);
+    
+    return `<div class="summary-card">${cardHTML}</div>`;
 }

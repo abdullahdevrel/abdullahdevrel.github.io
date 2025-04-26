@@ -29,6 +29,9 @@ let startTime = null;
 let timerInterval = null;
 let totalTime = 0;
 
+// At the top with other global variables
+let resultMap = null;
+
 const modeSelector = document.getElementById('modeSelector');
 modeSelector.value = currentMode;
 
@@ -287,23 +290,20 @@ guessButton.addEventListener('click', async () => {
   }
 
   // Add a marker for the real location
-  const markerReal = L.marker(realLocation, {
+  const mainMarkerReal = L.marker(realLocation, {
       icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [24, 24] })
   }).addTo(map);
 
-  const line = L.polyline([guessLatLng, realLocation], { color: 'green', dashArray: '5,10' }).addTo(map);
-  guessedItems.push(markerReal, line);
+  const mainLine = L.polyline([guessLatLng, realLocation], { color: 'green', dashArray: '5,10' }).addTo(map);
+  guessedItems.push(mainMarkerReal, mainLine);
 
   // Create a bounds object that includes both pins
-  const bounds = L.latLngBounds([guessLatLng, realLocation]);
-  
-  // Get the current zoom level
-  const currentZoom = map.getZoom();
+  const mainBounds = L.latLngBounds([guessLatLng, realLocation]);
   
   // Fit the map to the bounds with more padding and a lower max zoom
-  map.fitBounds(bounds, {
-    padding: [200, 200], // Increased padding from 50 to 100
-    maxZoom: 8  // Reduced from 12 to 8 to prevent zooming in too close
+  map.fitBounds(mainBounds, {
+    padding: [200, 200],
+    maxZoom: 8
   });
   
   // If we're too zoomed out (zoom < 3), set a minimum zoom
@@ -318,22 +318,77 @@ guessButton.addEventListener('click', async () => {
   updateTotalScoreDisplay();
   updateScoreDisplay();
 
+  // Save the guess data for the round
+  guesses.push({
+      ip: ipAddress,
+      distance,
+      score,
+      org: currentData.org,
+      guessedLocation: locationDetails,
+      realLocation: {
+          city: currentData.city || 'Unknown',
+          region: currentData.region || 'Unknown',
+          country: currentData.country || 'Unknown'
+      },
+      guessedLat: guessLatLng[0],
+      guessedLng: guessLatLng[1],
+      realLat: realLocation[0],
+      realLng: realLocation[1]
+  });
+
   // Update the footer with redesigned results
   const footer = document.getElementById('footer');
   footer.innerHTML = `
       <div class="result-container">
-          <p class="result-location">📍 <strong>${currentData.city || 'Unknown'}, ${currentData.region || 'Unknown'}, ${currentData.country || 'Unknown'}</strong> ${locationDetails.city === currentData.city ? '✅' : '❌'}</p>
-          <p class="result-distance">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong class="score-highlight">+${score}</strong></p>
-          <p class="result-total">Total Score: <strong class="score-highlight">${currentScore}</strong></p>
-          <div class="result-actions">
-              <a href="https://ipinfo.io/${ipAddress}" target="_blank" class="result-button ip-button">🔍 ${ipAddress}</a>
-              <button id="nextIpButton" class="result-button next-button">Next IP ➜</button>
+          <div class="result-info">
+              <p class="result-location">📍 <strong>${currentData.city || 'Unknown'}, ${currentData.region || 'Unknown'}, ${currentData.country || 'Unknown'}</strong> ${locationDetails.city === currentData.city ? '✅' : '❌'}</p>
+              <p class="result-distance">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong class="score-highlight">+${score}</strong></p>
+              <p class="result-total">Total Score: <strong class="score-highlight">${currentScore}</strong></p>
+              <div class="result-actions">
+                  <a href="https://ipinfo.io/${ipAddress}" target="_blank" class="result-button ip-button">🔍 ${ipAddress}</a>
+                  <button id="nextIpButton" class="result-button next-button">Next IP ➜</button>
+              </div>
           </div>
+          <div class="result-map" id="resultMap"></div>
       </div>
   `;
 
-  // Disable pin dropping
-  map.off('click');
+  // Initialize the small result map
+  if (resultMap) {
+      resultMap.remove();
+  }
+  resultMap = L.map('resultMap', {
+      zoomControl: false,
+      attributionControl: false
+  });
+
+  // Add the same tile layer as the main map
+  L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: config.map.maxZoom
+  }).addTo(resultMap);
+
+  // Add markers for guess and real location
+  const guessMarker = L.marker(guessLatLng, {
+      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [24, 24] })
+  }).addTo(resultMap);
+  
+  const realMarker = L.marker(realLocation, {
+      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [24, 24] })
+  }).addTo(resultMap);
+
+  // Draw a line between the points in result map
+  const resultLine = L.polyline([guessLatLng, realLocation], { 
+      color: 'green', 
+      dashArray: '5,10',
+      weight: 2
+  }).addTo(resultMap);
+
+  // Fit the bounds with some padding
+  const resultBounds = L.latLngBounds([guessLatLng, realLocation]);
+  resultMap.fitBounds(resultBounds, {
+      padding: [20, 20],
+      maxZoom: 8
+  });
 
   // Enable keyboard shortcuts for next IP
   const handleNextIp = () => {
@@ -351,20 +406,6 @@ guessButton.addEventListener('click', async () => {
   };
 
   document.addEventListener('keydown', nextIpKeyHandler);
-
-  // Save the guess data for the round
-  guesses.push({
-      ip: ipAddress,
-      distance,
-      score,
-      org: currentData.org, // Add the ASN information
-      guessedLocation: locationDetails,
-      realLocation: {
-          city: currentData.city || 'Unknown',
-          region: currentData.region || 'Unknown',
-          country: currentData.country || 'Unknown'
-      }
-  });
 
   guessCount++;
 

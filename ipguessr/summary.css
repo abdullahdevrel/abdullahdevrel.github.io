@@ -3,10 +3,63 @@
     color: var(--text-100);
     border-radius: 16px;
     padding: 2rem;
-    max-width: 600px;
+    max-width: 1000px;
     margin: 2rem auto;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    gap: 2rem;
+}
+
+.summary-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.summary-map-container {
+    background: var(--bg-300);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.summary-map {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.map-details {
+    color: var(--text-100);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    padding: 1rem;
+    background: var(--bg-200);
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.map-details p {
+    margin: 0.5rem 0;
+}
+
+.map-details a {
+    color: var(--accent-200);
+    text-decoration: none;
+}
+
+.map-details a:hover {
+    text-decoration: underline;
+}
+
+.map-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--accent-200);
+    margin-bottom: 1rem;
+    text-align: center;
 }
 
 .summary-card h2 {
