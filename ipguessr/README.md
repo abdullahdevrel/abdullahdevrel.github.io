@@ -77,3 +77,19 @@
   - AS56048 China Mobile Communications Corporation
   - AS6461 Zayo Bandwidth
   - AS12271 Charter Communications Inc
+  - AS4538 China Education and Research Network Center
+  - AS1221 Telstra Limited
+  - AS16625 Akamai Technologies, Inc.
+  - AS702 Verizon Business
+  - AS2856 British Telecommunications PLC
+  - AS10429 TELEFÔNICA BRASIL S.A
+  - AS17858 LG POWERCOMM
+  - AS12322 Free SAS
+  - AS237 Merit Network Inc.
+  - AS6713 Office National des Postes et Telecommunications ONPT (Maroc Telecom) / IAM
+  - AS306 DoD Network Information Center
+  - AS45090 Shenzhen Tencent Computer Systems Company Limited
+  - AS668 DoD Network Information Center
+  - AS209 CenturyLink Communications, LLC
+  - AS7843 Charter Communications Inc
+  - AS15557 Societe Francaise Du Radiotelephone - SFR SA
