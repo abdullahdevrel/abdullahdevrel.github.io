@@ -41,7 +41,7 @@ export const config = {
     },
     gameSettings: {
         maxTries: 15, // Maximum number of tries to fetch a valid IP
-        rounds: 10,   // Number of rounds in a game
+        rounds: 3,   // Number of rounds in a game
         scoring: {
             perfect: { distance: 100, points: 100 },
             excellent: { distance: 500, points: 75 },

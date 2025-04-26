@@ -266,6 +266,63 @@
     color: var(--text-200);
 }
 
+.share-container {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--bg-200);
+    text-align: center;
+}
+
+.share-text {
+    color: var(--text-200);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.share-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.share-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.share-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.share-button.facebook {
+    background-color: #1877f2;
+    color: white;
+}
+
+.share-button.x {
+    background-color: #000000;
+    color: white;
+}
+
+.share-button.linkedin {
+    background-color: #0077b5;
+    color: white;
+}
+
+.share-button:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+}
+
 @media (max-width: 1024px) {
     .summary-card {
         grid-template-columns: 1fr;

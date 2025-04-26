@@ -1,4 +1,9 @@
 import { config } from './config.js';
+import { generateShareText, shareToSocialMedia } from './share.js';
+
+// Make share functions available globally as soon as the module loads
+window.shareToSocialMedia = shareToSocialMedia;
+window.generateShareText = generateShareText;
 
 export function getEmoji(distance) {
     if (distance < config.gameSettings.scoring.perfect.distance) return '🎯';
@@ -19,6 +24,17 @@ export function createSummaryCard(guesses, totalScore, totalTime) {
     const bestGuess = guesses.reduce((best, current) => 
         current.distance < best.distance ? current : best
     , guesses[0]);
+    
+    // Create a safe version of bestGuess for sharing
+    const shareData = {
+        distance: bestGuess.distance,
+        ip: bestGuess.ip,
+        realLocation: bestGuess.realLocation,
+        guessedLocation: bestGuess.guessedLocation
+    };
+    
+    // Create a serialized version of the share data
+    const serializedShareData = encodeURIComponent(JSON.stringify(shareData));
     
     const cardHTML = `
         <div class="summary-content">
@@ -98,9 +114,23 @@ export function createSummaryCard(guesses, totalScore, totalTime) {
                 <p>🌍 <strong>Your Guess:</strong> ${bestGuess.guessedLocation.city}, ${bestGuess.guessedLocation.region}, ${bestGuess.guessedLocation.country}</p>
                 <p>📏 <strong>Distance:</strong> ${bestGuess.distance.toFixed(1)} km</p>
             </div>
+            <div class="share-container">
+                <p class="share-text">Share your achievement! 🏆</p>
+                <div class="share-buttons">
+                    <button onclick="window.shareToSocialMedia('facebook', window.generateShareText(JSON.parse(decodeURIComponent('${serializedShareData}')), ${totalScore}))" class="share-button facebook">
+                        <svg viewBox="0 0 24 24" class="share-icon"><path fill="currentColor" d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"/></svg>
+                    </button>
+                    <button onclick="window.shareToSocialMedia('x', window.generateShareText(JSON.parse(decodeURIComponent('${serializedShareData}')), ${totalScore}))" class="share-button x">
+                        <svg viewBox="0 0 24 24" class="share-icon"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </button>
+                    <button onclick="window.shareToSocialMedia('linkedin', window.generateShareText(JSON.parse(decodeURIComponent('${serializedShareData}')), ${totalScore}))" class="share-button linkedin">
+                        <svg viewBox="0 0 24 24" class="share-icon"><path fill="currentColor" d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                    </button>
+                </div>
+            </div>
         </div>
     `;
-    
+
     // Wait for the next tick to ensure the map container is in the DOM
     setTimeout(() => {
         const summaryMap = L.map('summaryMap', {
