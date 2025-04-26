@@ -23,6 +23,7 @@ let guesses = []; // Stores guesses for each round
 let currentMode = localStorage.getItem('ipGuessMode') || '';
 let guessCount = 0; // Tracks number of guesses
 let currentData = null; // Store data globally for access in event handler
+let nextIPData = null; // Store the next IP data
 
 // Add timer variables at the top with other global variables
 let startTime = null;
@@ -100,7 +101,10 @@ async function startGame() {
   if (modeSelector) modeSelector.remove();
   if (startButton) startButton.remove();
 
-  const fetchedData = await fetchValidIPLocation();
+  // Use prefetched data if available, otherwise fetch new data
+  const fetchedData = nextIPData || await fetchValidIPLocation();
+  nextIPData = null; // Clear the prefetched data
+
   if (!fetchedData) {
     document.getElementById('status').innerText = 'Failed to load IP info. Try again.';
     return;
@@ -433,6 +437,11 @@ guessButton.addEventListener('click', async () => {
 
   document.addEventListener('keydown', nextIpKeyHandler);
 
+  // Start prefetching the next IP while user reviews their guess
+  if (guessCount < config.gameSettings.rounds - 1) {
+    prefetchNextIP();
+  }
+
   guessCount++;
 
   // Hide the "Guess" button after it's used
@@ -479,5 +488,10 @@ guessButton.addEventListener('click', async () => {
       }
   });
 });
+
+// Add function to prefetch next IP
+async function prefetchNextIP() {
+  nextIPData = await fetchValidIPLocation();
+}
 
 
