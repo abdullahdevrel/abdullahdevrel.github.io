@@ -58,3 +58,20 @@
   - AS812 Rogers Communications Canada Inc.
   - AS9318 SK Broadband Co Ltd
   - AS9808 China Mobile Communications Group Co., Ltd.
+  - AS30722 Vodafone Italia S.p.A.
+  - AS3257 GTT Communications Inc.
+  - AS9808 China Mobile Communications Group Co., Ltd.
+  - AS33363 Charter Communications, Inc
+  - AS2907 Research Organization of Information and Systems, National Institute of Informatics
+  - AS31399 Mercedes-Benz Group AG
+  - AS6167 Verizon Business
+  - AS22394 Verizon Business
+  - AS45899 VNPT Corp
+  - AS9318 SK Broadband Co Ltd
+  - AS56047 China Mobile communications corporation
+  - AS396982 Google LLC
+  - AS22773 Cox Communications Inc.
+  - AS20115 Charter Communications LLC
+  - AS56 DoD Network Information Center
+  - AS8167 V tal
+  - AS2828 Verizon Business

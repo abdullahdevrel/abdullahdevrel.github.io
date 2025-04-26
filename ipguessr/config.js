@@ -24,7 +24,24 @@ export const config = {
         'AS4713',  // NTT Communications Corporation
         'AS7018',  // AT&T Services
         'AS3269',  // Telecom Italia
-        'AS367'    // DoD Network Information Center
+        'AS367',   // DoD Network Information Center
+        'AS30722', // Vodafone Italia S.p.A.
+        'AS3257',  // GTT Communications Inc.
+        'AS9808',  // China Mobile Communications Group Co., Ltd.
+        'AS33363', // Charter Communications, Inc
+        'AS2907',  // Research Organization of Information and Systems, National Institute of Informatics
+        'AS31399', // Mercedes-Benz Group AG
+        'AS6167',  // Verizon Business
+        'AS22394', // Verizon Business
+        'AS45899', // VNPT Corp
+        'AS9318',  // SK Broadband Co Ltd
+        'AS56047', // China Mobile communications corporation
+        'AS396982',// Google LLC
+        'AS22773', // Cox Communications Inc.
+        'AS20115', // Charter Communications LLC
+        'AS56',    // DoD Network Information Center
+        'AS8167',  // V tal
+        'AS2828'   // Verizon Business
     ],
     // Add more configuration options here as needed
     apiEndpoints: {
@@ -41,7 +58,7 @@ export const config = {
     },
     gameSettings: {
         maxTries: 15, // Maximum number of tries to fetch a valid IP
-        rounds: 3,   // Number of rounds in a game
+        rounds: 7,   // Number of rounds in a game
         scoring: {
             perfect: { distance: 100, points: 100 },
             excellent: { distance: 500, points: 75 },
