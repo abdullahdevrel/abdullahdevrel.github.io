@@ -41,7 +41,12 @@ export const config = {
         'AS20115', // Charter Communications LLC
         'AS56',    // DoD Network Information Center
         'AS8167',  // V tal
-        'AS2828'   // Verizon Business
+        'AS2828',  // Verizon Business
+        'AS20001', // Charter Communications Inc
+        'AS56048', // China Mobile Communications Corporation
+        'AS6461',  // Zayo Bandwidth
+        'AS174',   // Cogent Communications
+        'AS12271'  // Charter Communications Inc
     ],
     // Add more configuration options here as needed
     apiEndpoints: {
@@ -58,7 +63,7 @@ export const config = {
     },
     gameSettings: {
         maxTries: 15, // Maximum number of tries to fetch a valid IP
-        rounds: 7,   // Number of rounds in a game
+        rounds: 5,   // Number of rounds in a game
         scoring: {
             perfect: { distance: 100, points: 100 },
             excellent: { distance: 500, points: 75 },

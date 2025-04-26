@@ -1,4 +1,3 @@
-
 ## Feature requests
 
 - Remove super popular ASNs
@@ -75,3 +74,6 @@
   - AS56 DoD Network Information Center
   - AS8167 V tal
   - AS2828 Verizon Business
+  - AS56048 China Mobile Communications Corporation
+  - AS6461 Zayo Bandwidth
+  - AS12271 Charter Communications Inc
