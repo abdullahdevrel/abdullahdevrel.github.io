@@ -274,9 +274,7 @@ function showSummary() {
 // Function to reset footer to default
 function resetFooter() {
     footer.innerHTML = `
-        Click on the map to guess the IP's location. Score based on distance!<br>
-        Press Space or Enter to submit. Keep playing until page reload!<br>
-        For feedback/feature requests reach out to <a href="https://www.linkedin.com/in/reincoder/" target="_blank">Abdullah</a> (DevRel of IPinfo)<br>
+        Click on the map to guess the IP's location. Score based on distance! Press Space or Enter to submit.<br>
         <div class="footer-credits">
             <strong>Data powered by <a href="https://ipinfo.io" target="_blank">IPinfo.io</a></strong>
             <span id="lastIpLink"></span>
