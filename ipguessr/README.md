@@ -39,3 +39,22 @@
   - AS9605 NTT DOCOMO, INC.
   - AS20115 Charter Communications LLC
   - AS3209 Vodafone GmbH
+  - AS20001 Charter Communications Inc
+  - AS2119 Telenor Norge AS
+  - AS2686 AT&T Enterprises, LLC
+  - AS2856 British Telecommunications PLC
+  - AS30722 Vodafone Italia S.p.A.
+  - AS31399 Mercedes-Benz Group AG
+  - AS3549 Level 3 Parent, LLC
+  - AS3786 LG DACOM Corporation
+  - AS37963 Hangzhou Alibaba Advertising Co.,Ltd.
+  - AS396982 Google LLC
+  - AS45090 Shenzhen Tencent Computer Systems Company Limited
+  - AS45102 Alibaba (US) Technology Co., Ltd.
+  - AS5378 Vodafone Limited
+  - AS6167 Verizon Business
+  - AS6713 Office National des Postes et Telecommunications ONPT (Maroc Telecom) / IAM
+  - AS7418 TELEFÓNICA CHILE S.A.
+  - AS812 Rogers Communications Canada Inc.
+  - AS9318 SK Broadband Co Ltd
+  - AS9808 China Mobile Communications Group Co., Ltd.

@@ -1,11 +1,18 @@
+import { config } from './config.js';
+import { createSummaryCard } from './summary.js';
+
 const map = L.map('map', {
     zoomControl: false,  // This will hide the zoom controls
     duration: 0.8  // Duration of animation in seconds
-}).setView([20, 0], 3);
+}).setView([config.map.initialView.lat, config.map.initialView.lng], config.map.initialView.zoom);
+
 L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-  maxZoom: 18
+  maxZoom: config.map.maxZoom
 }).addTo(map);
+
+// Add event listener for start button
+document.getElementById('startButton').addEventListener('click', startGame);
 
 let currentScore = 0;
 let ipAddress = '';
@@ -33,7 +40,7 @@ modeSelector.addEventListener('change', () => {
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
 
-const excludedASNs = ['AS27142', 'AS749', 'AS721', 'AS4134', 'AS6389', 'AS17676', 'AS8075', 'AS3356', 'AS32703', 'AS4837', 'AS20214', 'AS16509', 'AS10796', 'AS7377', 'AS7922', 'AS7792', 'AS4766', 'AS334', 'AS7738', 'AS3320', 'AS701', 'AS4713', 'AS7018', 'AS3269', 'AS367', 'AS17858', 'AS3561', 'AS3257', 'AS2514', 'AS12322', 'AS174', 'AS35807', 'AS20940', 'AS9158', 'AS9605', 'AS20115', 'AS3209']; // List of ASNs for which the IP address should not be shown
+const excludedASNs = config.excludedASNs; // List of ASNs for which the IP address should not be shown
 
 function formatTime(ms) {
     const seconds = Math.floor((ms / 1000) % 60);
@@ -109,7 +116,7 @@ async function startGame() {
   previousIpAddress = currentData.ip;
   ipAddress = currentData.ip;
   realLocation = currentData.loc.split(',').map(Number);
-  map.flyTo([20, 0], 3, {
+  map.flyTo([config.map.initialView.lat, config.map.initialView.lng], config.map.initialView.zoom, {
     duration: 0.8,
     easeLinearity: 0.5
   });
@@ -127,14 +134,14 @@ async function startGame() {
 }
 
 async function fetchValidIPLocation() {
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < config.gameSettings.maxTries; i++) {
     const ip = getRandomIP();
     try {
-      const res = await fetch(`https://ipinfo.io/${ip}/json`);
+      const res = await fetch(`${config.apiEndpoints.ipinfo}/${ip}/json`);
       const data = await res.json();
       // Skip if it's a bogon IP, has no location, no org field, or belongs to an excluded ASN
       if (!data.bogon && data.loc && data.org && 
-          !excludedASNs.includes(data.org.split(' ')[0])) {
+          !config.excludedASNs.includes(data.org.split(' ')[0])) {
         return data;
       }
     } catch (e) {
@@ -164,11 +171,12 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 function scoreFromDistance(km) {
-  if (km < 100) return 100;
-  if (km < 500) return 75;
-  if (km < 1000) return 50;
-  if (km < 2000) return 25;
-  return 10;
+  const { scoring } = config.gameSettings;
+  if (km < scoring.perfect.distance) return scoring.perfect.points;
+  if (km < scoring.excellent.distance) return scoring.excellent.points;
+  if (km < scoring.good.distance) return scoring.good.points;
+  if (km < scoring.fair.distance) return scoring.fair.points;
+  return scoring.poor.points;
 }
 
 // Update the total score display dynamically
@@ -221,7 +229,7 @@ document.addEventListener('keydown', (event) => {
 // Function to fetch location details (city, region, country) from Nominatim
 async function getLocationDetails(latLng) {
   const [lat, lon] = latLng;
-  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=en`;
+  const url = `${config.apiEndpoints.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=en`;
 
   try {
     const response = await fetch(url);
@@ -404,7 +412,7 @@ guessButton.addEventListener('click', async () => {
           guessButton.dataset.lng = guessLatLng.lng;
       });
 
-      if (guessCount >= 10) { // Changed from 5 to 10 rounds
+      if (guessCount >= config.gameSettings.rounds) {
           showSummary(); // Show summary if the game is over
       } else {
           currentData = null; // Clear the current data

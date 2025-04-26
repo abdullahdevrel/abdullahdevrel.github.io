@@ -1,12 +1,14 @@
-function getEmoji(distance) {
-    if (distance < 100) return '🎯';
-    if (distance < 500) return '🌟';
-    if (distance < 1000) return '👍';
-    if (distance < 2000) return '🌍';
+import { config } from './config.js';
+
+export function getEmoji(distance) {
+    if (distance < config.gameSettings.scoring.perfect.distance) return '🎯';
+    if (distance < config.gameSettings.scoring.excellent.distance) return '🌟';
+    if (distance < config.gameSettings.scoring.good.distance) return '👍';
+    if (distance < config.gameSettings.scoring.fair.distance) return '🌍';
     return '✈️';
 }
 
-function createSummaryCard(guesses, totalScore, totalTime) {
+export function createSummaryCard(guesses, totalScore, totalTime) {
     const avgDistance = guesses.reduce((acc, guess) => acc + guess.distance, 0) / guesses.length;
     const perfectGuesses = guesses.filter(g => g.distance < 100).length;
     const minutes = Math.floor((totalTime / (1000 * 60)) % 60);
