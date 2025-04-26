@@ -137,20 +137,35 @@ async function startGame() {
 }
 
 async function fetchValidIPLocation() {
-  for (let i = 0; i < config.gameSettings.maxTries; i++) {
-    const ip = getRandomIP();
-    try {
-      const res = await fetch(`${config.apiEndpoints.ipinfo}/${ip}/json`);
-      const data = await res.json();
-      // Skip if it's a bogon IP, has no location, no org field, or belongs to an excluded ASN
-      if (!data.bogon && data.loc && data.org && 
+  const BATCH_SIZE = 5; // Number of parallel requests per batch
+  const NUM_BATCHES = 3; // Fixed number of batches
+
+  for (let batch = 0; batch < NUM_BATCHES; batch++) {
+    const requests = [];
+    
+    // Create BATCH_SIZE parallel requests for this batch
+    for (let i = 0; i < BATCH_SIZE; i++) {
+      const ip = getRandomIP();
+      requests.push(
+        fetch(`${config.apiEndpoints.ipinfo}/${ip}/json`)
+          .then(res => res.json())
+          .then(data => ({ ip, data }))
+          .catch(() => ({ ip, data: null }))
+      );
+    }
+
+    // Wait for all requests in this batch to complete
+    const results = await Promise.all(requests);
+    
+    // Check each result for validity
+    for (const { data } of results) {
+      if (data && !data.bogon && data.loc && data.org && 
           !config.excludedASNs.includes(data.org.split(' ')[0])) {
         return data;
       }
-    } catch (e) {
-      continue;
     }
   }
+  
   return null;
 }
 
