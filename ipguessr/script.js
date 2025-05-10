@@ -1,6 +1,17 @@
 import { config } from './config.js';
 import { createSummaryCard } from './summary.js';
 
+const CONSTANTS = {
+    ICONS: {
+        blueDot: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png',
+        redDot: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png'
+    },
+    API_ENDPOINTS: {
+        ipinfo: config.apiEndpoints.ipinfo,
+        nominatim: config.apiEndpoints.nominatim
+    }
+};
+
 const map = L.map('map', {
     zoomControl: false,  // This will hide the zoom controls
     duration: 0.8  // Duration of animation in seconds
@@ -14,26 +25,25 @@ L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', 
 // Add event listener for start button
 document.getElementById('startButton').addEventListener('click', startGame);
 
-let currentScore = 0;
+const gameState = {
+    currentScore: 0,
+    realLocation: null,
+    currentData: null,
+    guessCount: 0,
+    guessedItems: [],
+    guesses: [],
+    nextIPData: null,
+    startTime: null,
+    timerInterval: null,
+    totalTime: 0,
+    resultMap: null
+};
+
 let ipAddress = '';
-let realLocation = null;
 let previousIpAddress = null;
-let guessedItems = [];
-let guesses = []; // Stores guesses for each round
-let currentMode = localStorage.getItem('ipGuessMode') || '';
-let guessCount = 0; // Tracks number of guesses
-let currentData = null; // Store data globally for access in event handler
-let nextIPData = null; // Store the next IP data
-
-// Add timer variables at the top with other global variables
-let startTime = null;
-let timerInterval = null;
-let totalTime = 0;
-
-// At the top with other global variables
-let resultMap = null;
 
 const modeSelector = document.getElementById('modeSelector');
+let currentMode = localStorage.getItem('ipGuessMode') || '';
 modeSelector.value = currentMode;
 
 modeSelector.addEventListener('change', () => {
@@ -53,26 +63,26 @@ function formatTime(ms) {
 }
 
 function updateTimer() {
-    if (!startTime) return;
+    if (!gameState.startTime) return;
     const timeDisplay = document.getElementById('timeDisplay');
     if (timeDisplay) {
-        const currentTime = Date.now() - startTime;
+        const currentTime = Date.now() - gameState.startTime;
         timeDisplay.innerHTML = `Time: <strong>${formatTime(currentTime)}</strong>`;
     }
 }
 
 function startTimer() {
-    startTime = Date.now();
-    timerInterval = setInterval(updateTimer, 1000);
+    gameState.startTime = Date.now();
+    gameState.timerInterval = setInterval(updateTimer, 1000);
 }
 
 function stopTimer() {
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
+    if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
     }
-    if (startTime) {
-        totalTime = Date.now() - startTime;
+    if (gameState.startTime) {
+        gameState.totalTime = Date.now() - gameState.startTime;
     }
 }
 
@@ -87,7 +97,7 @@ async function startGame() {
   document.getElementById('status').innerText = 'Fetching a new IP...';
   
   // Only create time display and start timer if this is the first round (no guesses yet)
-  if (guessCount === 0) {
+  if (gameState.guessCount === 0) {
     const timeDisplay = document.createElement('div');
     timeDisplay.id = 'timeDisplay';
     timeDisplay.innerHTML = 'Time: <strong>0:00</strong>';
@@ -102,8 +112,8 @@ async function startGame() {
   if (startButton) startButton.remove();
 
   // Use prefetched data if available, otherwise fetch new data
-  const fetchedData = nextIPData || await fetchValidIPLocation();
-  nextIPData = null; // Clear the prefetched data
+  const fetchedData = gameState.nextIPData || await fetchValidIPLocation();
+  gameState.nextIPData = null; // Clear the prefetched data
 
   if (!fetchedData) {
     document.getElementById('status').innerText = 'Failed to load IP info. Try again.';
@@ -111,7 +121,7 @@ async function startGame() {
   }
 
   // Store the fetched data in the `currentData` variable globally
-  currentData = fetchedData;
+  gameState.currentData = fetchedData;
 
   // Update the last IP address link if there's a previous one
   if (previousIpAddress) {
@@ -120,9 +130,9 @@ async function startGame() {
     document.getElementById('lastIpLink').innerHTML = '';
   }
 
-  previousIpAddress = currentData.ip;
-  ipAddress = currentData.ip;
-  realLocation = currentData.loc.split(',').map(Number);
+  previousIpAddress = gameState.currentData.ip;
+  ipAddress = gameState.currentData.ip;
+  gameState.realLocation = gameState.currentData.loc.split(',').map(Number);
   map.flyTo([config.map.initialView.lat, config.map.initialView.lng], config.map.initialView.zoom, {
     duration: 0.8,
     easeLinearity: 0.5
@@ -130,11 +140,11 @@ async function startGame() {
 
   let details = '';
   details += `IP: <strong>${ipAddress}</strong><br>`;
-  if (currentData.org) {
-    details += `ASN: <a href="https://ipinfo.io/${currentData.org.split(' ')[0]}" target="_blank">${currentData.org}</a><br>`;
+  if (gameState.currentData.org) {
+    details += `ASN: <a href="https://ipinfo.io/${gameState.currentData.org.split(' ')[0]}" target="_blank">${gameState.currentData.org}</a><br>`;
   }
-  if (currentMode === 'normal' && currentData.hostname) {
-    details += `Hostname: ${currentData.hostname}<br>`;
+  if (currentMode === 'normal' && gameState.currentData.hostname) {
+    details += `Hostname: ${gameState.currentData.hostname}<br>`;
   }
 
   document.getElementById('status').innerHTML = details + 'Click on the map to drop your pin.';
@@ -151,8 +161,7 @@ async function fetchValidIPLocation() {
     for (let i = 0; i < BATCH_SIZE; i++) {
       const ip = getRandomIP();
       requests.push(
-        fetch(`${config.apiEndpoints.ipinfo}/${ip}/json`)
-          .then(res => res.json())
+        fetchWithRetry(`${CONSTANTS.API_ENDPOINTS.ipinfo}/${ip}/json`)
           .then(data => ({ ip, data }))
           .catch(() => ({ ip, data: null }))
       );
@@ -179,8 +188,8 @@ function getRandomIP() {
 }
 
 function clearMap() {
-  guessedItems.forEach(item => map.removeLayer(item));
-  guessedItems.length = 0;
+  gameState.guessedItems.forEach(item => map.removeLayer(item));
+  gameState.guessedItems.length = 0;
 }
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -205,7 +214,7 @@ function scoreFromDistance(km) {
 function updateTotalScoreDisplay() {
   const totalScoreElement = document.querySelector('#status strong'); // Assuming the total score is inside a <strong> tag in #status
   if (totalScoreElement) {
-      totalScoreElement.textContent = currentScore;
+      totalScoreElement.textContent = gameState.currentScore;
   }
 }
 
@@ -213,57 +222,54 @@ function updateTotalScoreDisplay() {
 function updateScoreDisplay() {
   const scoreDisplayElement = document.getElementById('scoreDisplay');
   if (scoreDisplayElement) {
-      scoreDisplayElement.innerHTML = `Total Score: <strong>${currentScore}</strong>`;
+      scoreDisplayElement.innerHTML = `Total Score: <strong>${gameState.currentScore}</strong>`;
   }
 }
 
-map.on('click', function (e) {
-  if (!realLocation || !currentData) return;
+function handleMapClick(e) {
+    if (!gameState.realLocation || !gameState.currentData) return;
 
-  const guessLatLng = e.latlng;
+    const guessLatLng = e.latlng;
 
-  // Remove any previously placed pins
-  if (guessedItems.length > 0) {
-      map.removeLayer(guessedItems[guessedItems.length - 1]);
-  }
+    if (gameState.guessedItems.length > 0) {
+        map.removeLayer(gameState.guessedItems[gameState.guessedItems.length - 1]);
+    }
 
-  // Place a pin on the map
-  const markerGuess = L.marker(guessLatLng, {
-      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [24, 24] })
-  }).addTo(map);
-  guessedItems.push(markerGuess);
+    const markerGuess = L.marker(guessLatLng, {
+        icon: L.icon({ iconUrl: CONSTANTS.ICONS.blueDot, iconSize: [24, 24] })
+    }).addTo(map);
+    gameState.guessedItems.push(markerGuess);
 
-  // Show the "Guess" button
-  guessButton.style.display = 'block';
+    guessButton.style.display = 'block';
+    guessButton.dataset.lat = guessLatLng.lat;
+    guessButton.dataset.lng = guessLatLng.lng;
+}
 
-  // Store the guess location for later use
-  guessButton.dataset.lat = guessLatLng.lat;
-  guessButton.dataset.lng = guessLatLng.lng;
-});
+map.on('click', handleMapClick);
 
-// Add keyboard event listeners for Enter and Space keys
-document.addEventListener('keydown', (event) => {
-  if (guessButton.style.display === 'block' && (event.key === 'Enter' || event.key === ' ')) {
-      guessButton.click();
-  }
-});
+// Function to debounce another function
+function debounce(func, delay) {
+    let timeout;
+    return (...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), delay);
+    };
+}
+
+// Apply debounce to the keydown event listener
+document.addEventListener('keydown', debounce((event) => {
+    if (guessButton.style.display === 'block' && (event.key === 'Enter' || event.key === ' ')) {
+        guessButton.click();
+    }
+}, 200));
 
 // Function to fetch location details (city, region, country) from Nominatim
 async function getLocationDetails(latLng) {
   const [lat, lon] = latLng;
-  const url = `${config.apiEndpoints.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=en`;
+  const url = `${CONSTANTS.API_ENDPOINTS.nominatim}/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=en`;
 
   try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data && data.address) {
-      return {
-        city: data.address.city || data.address.town || data.address.village || 'Unknown',
-        region: data.address.state || 'Unknown',
-        country: data.address.country_code.toUpperCase() || 'Unknown'
-      };
-    }
+    return await fetchWithRetry(url);
   } catch (error) {
     console.error('Error fetching location details:', error);
   }
@@ -283,7 +289,7 @@ function showSummary() {
     if (modeSelector) modeSelector.remove();
     if (startButton) startButton.remove();
 
-    const summaryHTML = createSummaryCard(guesses, currentScore, totalTime);
+    const summaryHTML = createSummaryCard(gameState.guesses, gameState.currentScore, gameState.totalTime);
     const summaryDiv = document.getElementById('summary');
     summaryDiv.innerHTML = summaryHTML;
     summaryDiv.classList.add('visible');
@@ -308,7 +314,7 @@ guessButton.style.display = 'none'; // Only keeping this as it's dynamically tog
 document.body.appendChild(guessButton);
 
 guessButton.addEventListener('click', async () => {
-  if (!realLocation || !currentData) return;
+  if (!gameState.realLocation || !gameState.currentData) return;
 
   const guessLatLng = [parseFloat(guessButton.dataset.lat), parseFloat(guessButton.dataset.lng)];
 
@@ -320,15 +326,15 @@ guessButton.addEventListener('click', async () => {
   }
 
   // Add a marker for the real location
-  const mainMarkerReal = L.marker(realLocation, {
-      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [24, 24] })
+  const mainMarkerReal = L.marker(gameState.realLocation, {
+      icon: L.icon({ iconUrl: CONSTANTS.ICONS.redDot, iconSize: [24, 24] })
   }).addTo(map);
 
-  const mainLine = L.polyline([guessLatLng, realLocation], { color: 'green', dashArray: '5,10' }).addTo(map);
-  guessedItems.push(mainMarkerReal, mainLine);
+  const mainLine = L.polyline([guessLatLng, gameState.realLocation], { color: 'green', dashArray: '5,10' }).addTo(map);
+  gameState.guessedItems.push(mainMarkerReal, mainLine);
 
   // Create a bounds object that includes both pins
-  const mainBounds = L.latLngBounds([guessLatLng, realLocation]);
+  const mainBounds = L.latLngBounds([guessLatLng, gameState.realLocation]);
   
   // Fit the map to the bounds with more padding and a lower max zoom
   map.fitBounds(mainBounds, {
@@ -342,28 +348,28 @@ guessButton.addEventListener('click', async () => {
   }
 
   // Calculate the distance and score
-  const distance = haversineDistance(...guessLatLng, ...realLocation);
+  const distance = haversineDistance(...guessLatLng, ...gameState.realLocation);
   const score = scoreFromDistance(distance);
-  currentScore += score;
+  gameState.currentScore += score;
   updateTotalScoreDisplay();
   updateScoreDisplay();
 
   // Save the guess data for the round
-  guesses.push({
+  gameState.guesses.push({
       ip: ipAddress,
       distance,
       score,
-      org: currentData.org,
+      org: gameState.currentData.org,
       guessedLocation: locationDetails,
       realLocation: {
-          city: currentData.city || 'Unknown',
-          region: currentData.region || 'Unknown',
-          country: currentData.country || 'Unknown'
+          city: gameState.currentData.city || 'Unknown',
+          region: gameState.currentData.region || 'Unknown',
+          country: gameState.currentData.country || 'Unknown'
       },
       guessedLat: guessLatLng[0],
       guessedLng: guessLatLng[1],
-      realLat: realLocation[0],
-      realLng: realLocation[1]
+      realLat: gameState.realLocation[0],
+      realLng: gameState.realLocation[1]
   });
 
   // Update the footer with redesigned results
@@ -371,9 +377,9 @@ guessButton.addEventListener('click', async () => {
   footer.innerHTML = `
       <div class="result-container">
           <div class="result-info">
-              <p class="result-location">📍 <strong>${currentData.city || 'Unknown'}, ${currentData.region || 'Unknown'}, ${currentData.country || 'Unknown'}</strong> ${locationDetails.city === currentData.city ? '✅' : '❌'}</p>
+              <p class="result-location">📍 <strong>${gameState.currentData.city || 'Unknown'}, ${gameState.currentData.region || 'Unknown'}, ${gameState.currentData.country || 'Unknown'}</strong> ${locationDetails.city === gameState.currentData.city ? '✅' : '❌'}</p>
               <p class="result-distance">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong class="score-highlight">+${score}</strong></p>
-              <p class="result-total">Total Score: <strong class="score-highlight">${currentScore}</strong></p>
+              <p class="result-total">Total Score: <strong class="score-highlight">${gameState.currentScore}</strong></p>
               <div class="result-actions">
                   <a href="https://ipinfo.io/${ipAddress}" target="_blank" class="result-button ip-button">🔍 ${ipAddress}</a>
                   <button id="nextIpButton" class="result-button next-button">Next IP ➜</button>
@@ -384,10 +390,10 @@ guessButton.addEventListener('click', async () => {
   `;
 
   // Initialize the small result map
-  if (resultMap) {
-      resultMap.remove();
+  if (gameState.resultMap) {
+      gameState.resultMap.remove();
   }
-  resultMap = L.map('resultMap', {
+  gameState.resultMap = L.map('resultMap', {
       zoomControl: false,
       attributionControl: false
   });
@@ -395,27 +401,27 @@ guessButton.addEventListener('click', async () => {
   // Add the same tile layer as the main map
   L.tileLayer('https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       maxZoom: config.map.maxZoom
-  }).addTo(resultMap);
+  }).addTo(gameState.resultMap);
 
   // Add markers for guess and real location
   const guessMarker = L.marker(guessLatLng, {
-      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [24, 24] })
-  }).addTo(resultMap);
+      icon: L.icon({ iconUrl: CONSTANTS.ICONS.blueDot, iconSize: [24, 24] })
+  }).addTo(gameState.resultMap);
   
-  const realMarker = L.marker(realLocation, {
-      icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/red-dot.png', iconSize: [24, 24] })
-  }).addTo(resultMap);
+  const realMarker = L.marker(gameState.realLocation, {
+      icon: L.icon({ iconUrl: CONSTANTS.ICONS.redDot, iconSize: [24, 24] })
+  }).addTo(gameState.resultMap);
 
   // Draw a line between the points in result map
-  const resultLine = L.polyline([guessLatLng, realLocation], { 
+  const resultLine = L.polyline([guessLatLng, gameState.realLocation], { 
       color: 'green', 
       dashArray: '5,10',
       weight: 2
-  }).addTo(resultMap);
+  }).addTo(gameState.resultMap);
 
   // Fit the bounds with some padding
-  const resultBounds = L.latLngBounds([guessLatLng, realLocation]);
-  resultMap.fitBounds(resultBounds, {
+  const resultBounds = L.latLngBounds([guessLatLng, gameState.realLocation]);
+  gameState.resultMap.fitBounds(resultBounds, {
       padding: [20, 20],
       maxZoom: 8
   });
@@ -438,11 +444,11 @@ guessButton.addEventListener('click', async () => {
   document.addEventListener('keydown', nextIpKeyHandler);
 
   // Start prefetching the next IP while user reviews their guess
-  if (guessCount < config.gameSettings.rounds - 1) {
+  if (gameState.guessCount < config.gameSettings.rounds - 1) {
     prefetchNextIP();
   }
 
-  guessCount++;
+  gameState.guessCount++;
 
   // Hide the "Guess" button after it's used
   guessButton.style.display = 'none';
@@ -456,34 +462,12 @@ guessButton.addEventListener('click', async () => {
       resetFooter();
 
       // Re-enable pin dropping
-      map.on('click', function (e) {
-          if (!realLocation || !currentData) return;
+      map.on('click', handleMapClick);
 
-          const guessLatLng = e.latlng;
-
-          // Remove any previously placed pins
-          if (guessedItems.length > 0) {
-              map.removeLayer(guessedItems[guessedItems.length - 1]);
-          }
-
-          // Place a pin on the map
-          const markerGuess = L.marker(guessLatLng, {
-              icon: L.icon({ iconUrl: 'https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png', iconSize: [24, 24] })
-          }).addTo(map);
-          guessedItems.push(markerGuess);
-
-          // Show the "Guess" button
-          guessButton.style.display = 'block';
-
-          // Store the guess location for later use
-          guessButton.dataset.lat = guessLatLng.lat;
-          guessButton.dataset.lng = guessLatLng.lng;
-      });
-
-      if (guessCount >= config.gameSettings.rounds) {
+      if (gameState.guessCount >= config.gameSettings.rounds) {
           showSummary(); // Show summary if the game is over
       } else {
-          currentData = null; // Clear the current data
+          gameState.currentData = null; // Clear the current data
           startGame(); // Start the next round
       }
   });
@@ -491,7 +475,17 @@ guessButton.addEventListener('click', async () => {
 
 // Add function to prefetch next IP
 async function prefetchNextIP() {
-  nextIPData = await fetchValidIPLocation();
+  gameState.nextIPData = await fetchValidIPLocation();
 }
 
-
+async function fetchWithRetry(url, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) return await response.json();
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed:`, error);
+        }
+    }
+    throw new Error('Failed to fetch data after multiple attempts.');
+}
