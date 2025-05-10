@@ -1,5 +1,6 @@
 import { config } from './config.js';
 import { createSummaryCard } from './summary.js';
+import { getRandomIPs } from './randomIPs.js';
 
 const CONSTANTS = {
     ICONS: {
@@ -36,7 +37,8 @@ const gameState = {
     startTime: null,
     timerInterval: null,
     totalTime: 0,
-    resultMap: null
+    resultMap: null,
+    lastScore: null
 };
 
 let ipAddress = '';
@@ -53,8 +55,6 @@ modeSelector.addEventListener('change', () => {
 
 const infoDiv = document.getElementById('info');
 const scoreDisplay = document.getElementById('scoreDisplay');
-
-const excludedASNs = config.excludedASNs; // List of ASNs for which the IP address should not be shown
 
 function formatTime(ms) {
     const seconds = Math.floor((ms / 1000) % 60);
@@ -96,6 +96,9 @@ async function startGame() {
   document.getElementById('result').innerHTML = '';
   document.getElementById('status').innerText = 'Fetching a new IP...';
   
+  // Reset lastScore before each new round
+  gameState.lastScore = null;
+
   // Only create time display and start timer if this is the first round (no guesses yet)
   if (gameState.guessCount === 0) {
     const timeDisplay = document.createElement('div');
@@ -139,52 +142,34 @@ async function startGame() {
   });
 
   let details = '';
-  details += `IP: <strong>${ipAddress}</strong><br>`;
+  if (!gameState.lastScore) {
+    details += `IP: <strong>${ipAddress}</strong><br>`;
+  } else {
+    details += `Score: <strong>+${gameState.lastScore}</strong><br>`;
+  }
   if (gameState.currentData.org) {
     details += `ASN: <a href="https://ipinfo.io/${gameState.currentData.org.split(' ')[0]}" target="_blank">${gameState.currentData.org}</a><br>`;
   }
   if (currentMode === 'normal' && gameState.currentData.hostname) {
     details += `Hostname: ${gameState.currentData.hostname}<br>`;
   }
-
   document.getElementById('status').innerHTML = details + 'Click on the map to drop your pin.';
 }
 
 async function fetchValidIPLocation() {
-  const BATCH_SIZE = 5; // Number of parallel requests per batch
-  const NUM_BATCHES = 3; // Fixed number of batches
-
-  for (let batch = 0; batch < NUM_BATCHES; batch++) {
-    const requests = [];
-    
-    // Create BATCH_SIZE parallel requests for this batch
-    for (let i = 0; i < BATCH_SIZE; i++) {
-      const ip = getRandomIP();
-      requests.push(
-        fetchWithRetry(`${CONSTANTS.API_ENDPOINTS.ipinfo}/${ip}/json`)
-          .then(data => ({ ip, data }))
-          .catch(() => ({ ip, data: null }))
-      );
-    }
-
-    // Wait for all requests in this batch to complete
-    const results = await Promise.all(requests);
-    
-    // Check each result for validity
-    for (const { data } of results) {
-      if (data && !data.bogon && data.loc && data.org && 
-          !config.excludedASNs.includes(data.org.split(' ')[0])) {
+  // Generate 5 random IPs using the new utility
+  const ips = getRandomIPs(5);
+  for (const ip of ips) {
+    try {
+      const data = await fetchWithRetry(`${CONSTANTS.API_ENDPOINTS.ipinfo}/${ip}/json`);
+      if (data && data.loc && data.org) {
         return data;
       }
+    } catch (e) {
+      // ignore error, try next IP
     }
   }
-  
   return null;
-}
-
-function getRandomIP() {
-  const octet = () => Math.floor(Math.random() * 256);
-  return `${octet()}.${octet()}.${octet()}.${octet()}`;
 }
 
 function clearMap() {
@@ -449,6 +434,17 @@ guessButton.addEventListener('click', async () => {
   }
 
   gameState.guessCount++;
+  gameState.lastScore = score;
+
+  // Update status box to show score instead of IP
+  let details = `Score: <strong>+${score}</strong><br>`;
+  if (gameState.currentData.org) {
+    details += `ASN: <a href="https://ipinfo.io/${gameState.currentData.org.split(' ')[0]}" target="_blank">${gameState.currentData.org}</a><br>`;
+  }
+  if (currentMode === 'normal' && gameState.currentData.hostname) {
+    details += `Hostname: ${gameState.currentData.hostname}<br>`;
+  }
+  document.getElementById('status').innerHTML = details;
 
   // Hide the "Guess" button after it's used
   guessButton.style.display = 'none';
