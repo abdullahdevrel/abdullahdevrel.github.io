@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Geofeed Generator</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+</head>
+<body>
+  <h1>Create Your Own Geofeed</h1>
+
+  <div>
+    <p>IPv4: <span id="ipv4">Loading...</span></p>
+    <p>IPv6: <span id="ipv6">Loading...</span></p>
+    <button id="getLocation">Generate Geofeed</button>
+  </div>
+
+  <div id="map" style="height: 300px; margin-top: 20px;"></div>
+
+  <h2>Generated Geofeed</h2>
+  <pre id="geofeedOutput"></pre>
+  <a id="downloadLink" download="geofeed.csv">Download Geofeed CSV</a>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const ipv4El = document.getElementById('ipv4');
+    const ipv6El = document.getElementById('ipv6');
+    const geofeedOutput = document.getElementById('geofeedOutput');
+    const downloadLink = document.getElementById('downloadLink');
+    const mapDiv = document.getElementById('map');
+
+    let ipv4 = null;
+    let ipv6 = null;
+
+    fetch('https://ipinfo.io/ip')
+      .then(res => res.text())
+      .then(ip => {
+        ipv4 = ip.trim();
+        ipv4El.textContent = ipv4;
+      })
+      .catch(() => {
+        ipv4El.textContent = 'Unavailable';
+      });
+
+    fetch('https://v6.ipinfo.io/ip')
+      .then(res => res.text())
+      .then(ip => {
+        ipv6 = ip.trim();
+        ipv6El.textContent = ipv6;
+      })
+      .catch(() => {
+        ipv6El.textContent = 'Unavailable';
+      });
+
+    document.getElementById('getLocation').onclick = () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        const map = L.map('map').setView([lat, lon], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lon]).addTo(map);
+
+        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
+
+        try {
+          const res = await fetch(nominatimUrl, {
+            headers: { 'User-Agent': 'IPinfo-Geofeed-App' }
+          });
+          const data = await res.json();
+          const address = data.address;
+
+          const country = address.country_code?.toUpperCase() || '';
+          const region = address.state || '';
+          const city = address.city || address.town || address.village || '';
+          const postcode = address.postcode || '';
+
+          const lines = [
+            '# Unofficial geofeed file built by IPinfo DevRel\'s app',
+            ipv4 ? `${ipv4}/32,${country},${region},${city},${postcode}` : '',
+            ipv6 ? `${ipv6}/128,${country},${region},${city},${postcode}` : ''
+          ].filter(Boolean);
+
+          const csvContent = lines.join('\n');
+          geofeedOutput.textContent = csvContent;
+
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          downloadLink.href = url;
+        } catch (e) {
+          geofeedOutput.textContent = 'Failed to reverse geocode location.';
+        }
+      }, err => {
+        alert('Location access denied.');
+      });
+    };
+  </script>
+</body>
+</html>
