@@ -8,33 +8,173 @@
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-200);
+      color: var(--text-100);
+    }
+
+    h1 {
+      text-align: center;
+      margin: 2rem 0;
+      color: var(--accent-200);
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 2rem;
+    }
+
+    .info {
+      background: var(--bg-300);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .info p {
+      margin: 0.5rem 0;
+    }
+
+    .info button {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--accent-100);
+      color: var(--text-100);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .info button:hover {
+      background: var(--primary-200);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #mapContainer {
+      background: var(--bg-300);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      height: fit-content;
+    }
+
+    #map {
+      width: 100%;
+      height: 300px;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .credits {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: var(--text-200);
+    }
+
+    .credits a {
+      color: var(--accent-200);
+      text-decoration: none;
+    }
+
+    .credits a:hover {
+      text-decoration: underline;
+    }
+
+    pre {
+      background: var(--bg-200);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    a {
+      color: var(--accent-200);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      #map {
+        height: 200px;
+      }
+    }
+  </style>
 </head>
 <body>
   <h1>Create Your Own Geofeed</h1>
 
-  <div>
-    <p>IPv4: <span id="ipv4">Loading...</span></p>
-    <p>IPv6: <span id="ipv6">Loading...</span></p>
-    <button id="getLocation">Generate Geofeed</button>
+  <div class="container">
+    <div class="info">
+      <p>IPv4: <span id="ipv4">Loading...</span></p>
+      <p>IPv6: <span id="ipv6">Loading...</span></p>
+      <button id="getLocation">Generate Geofeed</button>
+
+      <div id="geofeedContainer" style="display: none;">
+        <h2>Generated Geofeed</h2>
+        <pre id="geofeedOutput"></pre>
+        <button id="downloadButton">Download Geofeed CSV</button>
+        <div id="instructions">
+          <h3>Submit Your Geofeed to IPinfo</h3>
+          <p>
+            After downloading the geofeed file, you can submit it to improve IP location accuracy on IPinfo.
+          </p>
+          <ol>
+            <li>Visit <a href="https://ipinfo.io/corrections" target="_blank">ipinfo.io/corrections</a>.</li>
+            <li>Scroll down to the section labeled <strong>“Bulk Corrections Via Geofeed”</strong>.</li>
+            <li>Select and upload the CSV file you just downloaded.</li>
+            <li>Submit the form and you're done!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div id="mapContainer">
+      <h2>Your Location on Map</h2>
+      <div id="map"></div>
+      <div class="credits">
+        Made by the DevRel of <a href="https://x.com/reincdr" target="_blank">IPinfo</a>
+      </div>
+    </div>
   </div>
-
-  <div id="map" style="height: 300px; margin-top: 20px;"></div>
-
-  <h2>Generated Geofeed</h2>
-  <pre id="geofeedOutput"></pre>
-  <a id="downloadLink" download="geofeed.csv">Download Geofeed CSV</a>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const ipv4El = document.getElementById('ipv4');
     const ipv6El = document.getElementById('ipv6');
     const geofeedOutput = document.getElementById('geofeedOutput');
-    const downloadLink = document.getElementById('downloadLink');
+    const downloadButton = document.getElementById('downloadButton');
     const mapDiv = document.getElementById('map');
+    const mapContainer = document.getElementById('mapContainer');
+    const geofeedContainer = document.getElementById('geofeedContainer');
 
     let ipv4 = null;
     let ipv6 = null;
 
+    // Fetch IPv4
     fetch('https://ipinfo.io/ip')
       .then(res => res.text())
       .then(ip => {
@@ -45,6 +185,7 @@
         ipv4El.textContent = 'Unavailable';
       });
 
+    // Fetch IPv6
     fetch('https://v6.ipinfo.io/ip')
       .then(res => res.text())
       .then(ip => {
@@ -65,12 +206,15 @@
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
+        // Show map
+        mapContainer.style.display = 'block';
         const map = L.map('map').setView([lat, lon], 13);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors'
         }).addTo(map);
         L.marker([lat, lon]).addTo(map);
 
+        // Reverse geocode
         const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`;
 
         try {
@@ -96,9 +240,21 @@
 
           const blob = new Blob([csvContent], { type: 'text/csv' });
           const url = URL.createObjectURL(blob);
-          downloadLink.href = url;
+          downloadButton.onclick = () => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'geofeed.csv';
+            a.click();
+          };
+
+          // Show geofeed content + download link
+          geofeedContainer.style.display = 'block';
+          document.getElementById('instructions').style.display = 'block';
+
         } catch (e) {
           geofeedOutput.textContent = 'Failed to reverse geocode location.';
+          geofeedContainer.style.display = 'block';
+          document.getElementById('instructions').style.display = 'block';
         }
       }, err => {
         alert('Location access denied.');
