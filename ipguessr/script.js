@@ -339,13 +339,20 @@ guessButton.addEventListener('click', async () => {
   updateTotalScoreDisplay();
   updateScoreDisplay();
 
+  // Extract location information from Nominatim API response
+  const guessedLocation = {
+      city: locationDetails.address?.city || locationDetails.address?.town || locationDetails.address?.village || locationDetails.address?.hamlet || 'Unknown',
+      region: locationDetails.address?.state || locationDetails.address?.county || 'Unknown',
+      country: locationDetails.address?.country || 'Unknown'
+  };
+
   // Save the guess data for the round
   gameState.guesses.push({
       ip: ipAddress,
       distance,
       score,
       org: gameState.currentData.org,
-      guessedLocation: locationDetails,
+      guessedLocation: guessedLocation,
       realLocation: {
           city: gameState.currentData.city || 'Unknown',
           region: gameState.currentData.region || 'Unknown',
@@ -362,7 +369,7 @@ guessButton.addEventListener('click', async () => {
   footer.innerHTML = `
       <div class="result-container">
           <div class="result-info">
-              <p class="result-location">📍 <strong>${gameState.currentData.city || 'Unknown'}, ${gameState.currentData.region || 'Unknown'}, ${gameState.currentData.country || 'Unknown'}</strong> ${locationDetails.city === gameState.currentData.city ? '✅' : '❌'}</p>
+              <p class="result-location">📍 <strong>${gameState.currentData.city || 'Unknown'}, ${gameState.currentData.region || 'Unknown'}, ${gameState.currentData.country || 'Unknown'}</strong> ${guessedLocation.city === gameState.currentData.city ? '✅' : '❌'}</p>
               <p class="result-distance">Your guess was <strong>${distance.toFixed(1)} km</strong> from the correct location → <strong class="score-highlight">+${score}</strong></p>
               <p class="result-total">Total Score: <strong class="score-highlight">${gameState.currentScore}</strong></p>
               <div class="result-actions">
