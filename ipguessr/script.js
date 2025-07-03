@@ -158,7 +158,7 @@ async function startGame() {
 
 async function fetchValidIPLocation() {
   // Generate 5 random IPs using the new utility
-  const ips = getRandomIPs(5);
+  const ips = await getRandomIPs(5);
   for (const ip of ips) {
     try {
       const data = await fetchWithRetry(`${CONSTANTS.API_ENDPOINTS.ipinfo}/${ip}/json`);
