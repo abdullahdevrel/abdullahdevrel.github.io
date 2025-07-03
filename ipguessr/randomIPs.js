@@ -1,8 +1,8 @@
 // randomIPs.js
 // Utility to generate an array of 5 random IPv4 addresses
 
-const EXCLUDED_DOMAINS = ['cloudflare.com'];
-const API_TOKEN = 'd669c1cf0c2cfa';
+const EXCLUDED_DOMAINS = ['cloudflare.com', 'mail.mil'];
+const API_TOKEN = 'a6c2e5328296f5';
 const BASE_URL = 'https://api.ipinfo.io/lite';
 
 function getRandomIP() {
