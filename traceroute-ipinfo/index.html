@@ -211,16 +211,28 @@
         }
 
         .example {
-            margin-top: 20px;
-            padding: 15px;
+            margin-top: 30px;
+            padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
             border-left: 4px solid #3498db;
+            clear: both;
         }
 
         .example h3 {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #555;
+            font-size: 16px;
+        }
+
+        .example ol {
+            margin-bottom: 20px;
+            padding-left: 20px;
+        }
+
+        .example ol li {
+            margin-bottom: 8px;
+            line-height: 1.5;
         }
 
         .example pre {
@@ -229,6 +241,11 @@
             line-height: 1.4;
             color: #666;
             overflow-x: auto;
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #e1e5e9;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -376,7 +393,8 @@
                             hop: 0,
                             ip: serverIP,
                             hostname: serverIP,
-                            responseTime: 'N/A'
+                            responseTime: 'N/A',
+                            isAsterisk: false
                         });
                         this.showStatus('Added server IP as Hop 0. Processing remaining hops...', 'info');
                     }
@@ -392,6 +410,22 @@
                     this.results = [];
                     for (let i = 0; i < allHops.length; i++) {
                         const hop = allHops[i];
+                        
+                        // Skip location lookup for asterisk entries
+                        if (hop.isAsterisk) {
+                            this.results.push({
+                                ...hop,
+                                city: 'Unknown',
+                                region: 'Unknown',
+                                country: 'Unknown',
+                                latitude: null,
+                                longitude: null,
+                                org: 'Unknown',
+                                isBogon: false
+                            });
+                            continue;
+                        }
+                        
                         this.showStatus(`Processing hop ${hop.hop}/${Math.max(...allHops.map(h => h.hop))}: ${hop.ip}`, 'info');
                         
                         try {
@@ -400,6 +434,11 @@
                                 ...hop,
                                 ...locationData
                             });
+                            
+                            // Debug log for hop 0
+                            if (hop.hop === 0) {
+                                console.log('Hop 0 location data:', locationData);
+                            }
                         } catch (error) {
                             console.warn(`Failed to get location for ${hop.ip}:`, error);
                             this.results.push({
@@ -409,7 +448,8 @@
                                 country: 'Unknown',
                                 latitude: null,
                                 longitude: null,
-                                org: 'Unknown'
+                                org: 'Unknown',
+                                isBogon: false
                             });
                         }
 
@@ -454,8 +494,17 @@
                         continue;
                     }
 
-                    // Skip lines with only asterisks
-                    if (/^\s*\d+\s+\*\s*\*\s*\*/.test(line)) {
+                    // Handle lines with asterisks
+                    const asteriskMatch = line.match(/^\s*(\d+)\s+\*\s*\*\s*\*/);
+                    if (asteriskMatch) {
+                        const hopNumber = parseInt(asteriskMatch[1]);
+                        hops.push({
+                            hop: hopNumber,
+                            ip: '* * *',
+                            hostname: '* * *',
+                            responseTime: 'N/A',
+                            isAsterisk: true
+                        });
                         continue;
                     }
 
@@ -487,13 +536,14 @@
                             avgTime = (sum / times.length).toFixed(2) + ' ms';
                         }
 
-                        // Validate IP address
-                        if (this.isValidIP(ip)) {
+                        // Validate IP address or allow asterisks
+                        if (this.isValidIP(ip) || target === '*') {
                             hops.push({
                                 hop: hopNumber,
                                 ip: ip,
                                 hostname: hostname,
-                                responseTime: avgTime
+                                responseTime: avgTime,
+                                isAsterisk: false
                             });
                         }
                     }
@@ -523,6 +573,19 @@
                 
                 const data = await response.json();
                 
+                // Check if it's a bogon IP
+                if (data.bogon) {
+                    return {
+                        city: 'Bogon',
+                        region: 'Bogon',
+                        country: 'Bogon',
+                        latitude: null,
+                        longitude: null,
+                        org: 'Bogon IP',
+                        isBogon: true
+                    };
+                }
+                
                 // Parse location coordinates
                 let latitude = null, longitude = null;
                 if (data.loc) {
@@ -537,7 +600,8 @@
                     country: data.country || 'Unknown',
                     latitude: latitude,
                     longitude: longitude,
-                    org: data.org || 'Unknown'
+                    org: data.org || 'Unknown',
+                    isBogon: false
                 };
             }
 
@@ -548,11 +612,30 @@
                 this.results.forEach(result => {
                     const row = document.createElement('tr');
                     const hopDisplay = result.hop === 0 ? `<strong>0 (Server)</strong>` : `<strong>${result.hop}</strong>`;
+                    
+                    // Create IP address display with hyperlink (unless it's asterisks)
+                    let ipDisplay;
+                    if (result.isAsterisk) {
+                        ipDisplay = '<code>* * *</code>';
+                    } else {
+                        ipDisplay = `<a href="https://ipinfo.io/${result.ip}" target="_blank" style="color: #3498db; text-decoration: none; font-family: monospace; font-weight: 600;">${result.ip}</a>`;
+                    }
+                    
+                    // Handle location display for bogon and asterisk entries
+                    let locationDisplay;
+                    if (result.isAsterisk) {
+                        locationDisplay = 'Unknown';
+                    } else if (result.isBogon) {
+                        locationDisplay = 'Bogon';
+                    } else {
+                        locationDisplay = `${result.city}, ${result.region}, ${result.country}`;
+                    }
+                    
                     row.innerHTML = `
                         <td>${hopDisplay}</td>
-                        <td><code>${result.ip}</code></td>
+                        <td>${ipDisplay}</td>
                         <td>${result.hostname}</td>
-                        <td>${result.city}, ${result.region}, ${result.country}</td>
+                        <td>${locationDisplay}</td>
                         <td>${result.org}</td>
                         <td>${result.responseTime}</td>
                     `;
@@ -561,6 +644,16 @@
                     if (result.hop === 0) {
                         row.style.backgroundColor = '#fff5f5';
                         row.style.borderLeft = '4px solid #e74c3c';
+                    }
+                    // Add special styling for asterisk entries
+                    else if (result.isAsterisk) {
+                        row.style.backgroundColor = '#f8f9fa';
+                        row.style.color = '#6c757d';
+                    }
+                    // Add special styling for bogon entries
+                    else if (result.isBogon) {
+                        row.style.backgroundColor = '#fff3cd';
+                        row.style.borderLeft = '4px solid #ffc107';
                     }
                     
                     tbody.appendChild(row);
@@ -589,20 +682,27 @@
 
                 // Add markers and create route
                 const validHops = this.results.filter(result => 
-                    result.latitude !== null && result.longitude !== null
+                    result.latitude !== null && result.longitude !== null && !result.isAsterisk
                 );
 
+                console.log('All results:', this.results);
+                console.log('Valid hops for map:', validHops);
+                console.log('Hop 0 in results:', this.results.find(r => r.hop === 0));
+
                 if (validHops.length === 0) {
+                    console.log('No valid hops found for map');
                     return;
                 }
 
-                // Create markers for each hop
-                validHops.forEach((hop, index) => {
-                    const marker = L.marker([hop.latitude, hop.longitude])
+                // Create markers for each hop (including hop 0)
+                const offsetMarkers = this.offsetOverlappingMarkers(validHops);
+                
+                offsetMarkers.forEach((hop, index) => {
+                    const marker = L.marker([hop.displayLat, hop.displayLng])
                         .addTo(this.map)
                         .bindPopup(`
                             <div style="text-align: center; min-width: 200px;">
-                                <strong>Hop ${hop.hop}${hop.hop === 0 ? ' (Your Server)' : ''}</strong><br>
+                                <strong>Hop ${hop.hop}${hop.hop === 0 ? ' (Your Server)' : ''}${hop.isBogon ? ' (Bogon IP)' : ''}</strong><br>
                                 <div style="margin: 8px 0;">
                                     <a href="https://ipinfo.io/${hop.ip}" target="_blank" style="color: #3498db; text-decoration: none; font-weight: 600;">
                                         ipinfo.io/${hop.ip}
@@ -612,15 +712,23 @@
                                     <strong>Response Time:</strong> ${hop.responseTime}
                                 </div>
                                 <div style="font-size: 12px; color: #666; line-height: 1.4;">
-                                    <strong>Location:</strong> ${hop.city}, ${hop.region}, ${hop.country}<br>
+                                    <strong>Location:</strong> ${hop.isBogon ? 'Bogon IP' : `${hop.city}, ${hop.region}, ${hop.country}`}<br>
                                     <strong>ISP:</strong> ${hop.org}
                                 </div>
                             </div>
                         `);
 
-                    // Add hop number label with special styling for hop 0
+                    // Add hop number label with special styling for hop 0 and bogon
                     const isServerHop = hop.hop === 0;
-                    const backgroundColor = isServerHop ? '#e74c3c' : '#3498db';
+                    const isBogonHop = hop.isBogon;
+                    let backgroundColor = '#3498db'; // default blue
+                    
+                    if (isServerHop) {
+                        backgroundColor = '#e74c3c'; // red for server
+                    } else if (isBogonHop) {
+                        backgroundColor = '#f39c12'; // orange for bogon
+                    }
+                    
                     const divIcon = L.divIcon({
                         className: 'hop-label',
                         html: `<div style="background: ${backgroundColor}; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${hop.hop}</div>`,
@@ -628,15 +736,17 @@
                         iconAnchor: [12, 12]
                     });
 
-                    L.marker([hop.latitude, hop.longitude], { icon: divIcon })
+                    L.marker([hop.displayLat, hop.displayLng], { icon: divIcon })
                         .addTo(this.map);
 
                     this.markers.push(marker);
                 });
 
-                // Create route polyline
-                if (validHops.length > 1) {
-                    const coordinates = validHops.map(hop => [hop.latitude, hop.longitude]);
+                // Create route polyline using offset coordinates (to connect to actual markers)
+                if (offsetMarkers.length > 1) {
+                    // Sort markers by hop number to ensure correct routing sequence
+                    const sortedMarkers = offsetMarkers.sort((a, b) => a.hop - b.hop);
+                    const coordinates = sortedMarkers.map(hop => [hop.displayLat, hop.displayLng]);
                     const polyline = L.polyline(coordinates, {
                         color: '#3498db',
                         weight: 3,
@@ -645,9 +755,52 @@
 
                     this.polylines.push(polyline);
 
-                    // Fit map to show all points
+                    // Fit map to show all points using offset coordinates
                     this.map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
                 }
+            }
+
+            offsetOverlappingMarkers(hops) {
+                const offsetDistance = 0.08; // Increased offset distance for better visibility
+                const processedHops = [];
+                const locationGroups = {};
+
+                // Group hops by their coordinates
+                hops.forEach(hop => {
+                    const key = `${hop.latitude.toFixed(4)},${hop.longitude.toFixed(4)}`;
+                    if (!locationGroups[key]) {
+                        locationGroups[key] = [];
+                    }
+                    locationGroups[key].push(hop);
+                });
+
+                // Process each location group
+                Object.values(locationGroups).forEach(group => {
+                    if (group.length === 1) {
+                        // Single hop at this location - no offset needed
+                        const hop = group[0];
+                        processedHops.push({
+                            ...hop,
+                            displayLat: hop.latitude,
+                            displayLng: hop.longitude
+                        });
+                    } else {
+                        // Multiple hops at same location - apply circular offset
+                        group.forEach((hop, index) => {
+                            const angle = (2 * Math.PI * index) / group.length;
+                            const latOffset = offsetDistance * Math.cos(angle);
+                            const lngOffset = offsetDistance * Math.sin(angle);
+                            
+                            processedHops.push({
+                                ...hop,
+                                displayLat: hop.latitude + latOffset,
+                                displayLng: hop.longitude + lngOffset
+                            });
+                        });
+                    }
+                });
+
+                return processedHops;
             }
         }
 
