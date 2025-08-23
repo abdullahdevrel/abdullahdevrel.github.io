@@ -367,7 +367,7 @@
             async analyzeTraceroute() {
                 const input = document.getElementById('traceroute-input').value.trim();
                 const serverIP = document.getElementById('server-ip').value.trim();
-                
+
                 if (!input) {
                     this.showStatus('Please paste traceroute output first.', 'error');
                     return;
@@ -408,9 +408,10 @@
 
                     // Get location data for each hop
                     this.results = [];
+                    let lastNonAnycastGeo = null;
                     for (let i = 0; i < allHops.length; i++) {
                         const hop = allHops[i];
-                        
+
                         // Skip location lookup for asterisk entries
                         if (hop.isAsterisk) {
                             this.results.push({
@@ -425,16 +426,43 @@
                             });
                             continue;
                         }
-                        
+
                         this.showStatus(`Processing hop ${hop.hop}/${Math.max(...allHops.map(h => h.hop))}: ${hop.ip}`, 'info');
-                        
+
                         try {
                             const locationData = await this.getLocationData(hop.ip);
-                            this.results.push({
-                                ...hop,
-                                ...locationData
-                            });
-                            
+
+                            // If anycast, copy previous non-anycast, non-asterisk, non-bogon geolocation
+                            if (locationData.anycast === true && lastNonAnycastGeo) {
+                                this.results.push({
+                                    ...hop,
+                                    city: lastNonAnycastGeo.city,
+                                    region: lastNonAnycastGeo.region,
+                                    country: lastNonAnycastGeo.country,
+                                    latitude: lastNonAnycastGeo.latitude,
+                                    longitude: lastNonAnycastGeo.longitude,
+                                    org: locationData.org || 'Unknown',
+                                    isBogon: false,
+                                    isAnycast: true
+                                });
+                            } else {
+                                this.results.push({
+                                    ...hop,
+                                    ...locationData,
+                                    isAnycast: locationData.anycast === true
+                                });
+                                // Save as last non-anycast, non-asterisk, non-bogon geolocation
+                                if (!locationData.anycast && !locationData.isBogon) {
+                                    lastNonAnycastGeo = {
+                                        city: locationData.city,
+                                        region: locationData.region,
+                                        country: locationData.country,
+                                        latitude: locationData.latitude,
+                                        longitude: locationData.longitude
+                                    };
+                                }
+                            }
+
                             // Debug log for hop 0
                             if (hop.hop === 0) {
                                 console.log('Hop 0 location data:', locationData);
@@ -570,9 +598,9 @@
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 // Check if it's a bogon IP
                 if (data.bogon) {
                     return {
@@ -582,10 +610,11 @@
                         latitude: null,
                         longitude: null,
                         org: 'Bogon IP',
-                        isBogon: true
+                        isBogon: true,
+                        anycast: false
                     };
                 }
-                
+
                 // Parse location coordinates
                 let latitude = null, longitude = null;
                 if (data.loc) {
@@ -601,7 +630,8 @@
                     latitude: latitude,
                     longitude: longitude,
                     org: data.org || 'Unknown',
-                    isBogon: false
+                    isBogon: false,
+                    anycast: data.anycast === true
                 };
             }
 
@@ -612,7 +642,7 @@
                 this.results.forEach(result => {
                     const row = document.createElement('tr');
                     const hopDisplay = result.hop === 0 ? `<strong>0 (Server)</strong>` : `<strong>${result.hop}</strong>`;
-                    
+
                     // Create IP address display with hyperlink (unless it's asterisks)
                     let ipDisplay;
                     if (result.isAsterisk) {
@@ -620,7 +650,7 @@
                     } else {
                         ipDisplay = `<a href="https://ipinfo.io/${result.ip}" target="_blank" style="color: #3498db; text-decoration: none; font-family: monospace; font-weight: 600;">${result.ip}</a>`;
                     }
-                    
+
                     // Handle location display for bogon and asterisk entries
                     let locationDisplay;
                     if (result.isAsterisk) {
@@ -629,8 +659,11 @@
                         locationDisplay = 'Bogon';
                     } else {
                         locationDisplay = `${result.city}, ${result.region}, ${result.country}`;
+                        if (result.isAnycast) {
+                            locationDisplay += ' <span title="Anycast geolocation shown as previous hop" style="color:#f39c12; font-size:12px;">(Anycast)</span>';
+                        }
                     }
-                    
+
                     row.innerHTML = `
                         <td>${hopDisplay}</td>
                         <td>${ipDisplay}</td>
@@ -639,7 +672,7 @@
                         <td>${result.org}</td>
                         <td>${result.responseTime}</td>
                     `;
-                    
+
                     // Add special styling for hop 0 (server)
                     if (result.hop === 0) {
                         row.style.backgroundColor = '#fff5f5';
@@ -655,7 +688,7 @@
                         row.style.backgroundColor = '#fff3cd';
                         row.style.borderLeft = '4px solid #ffc107';
                     }
-                    
+
                     tbody.appendChild(row);
                 });
 
