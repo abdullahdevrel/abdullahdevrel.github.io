@@ -316,6 +316,15 @@
  3  * * *
  4  72.14.204.1 (72.14.204.1)  12.123 ms  12.045 ms  11.987 ms
  5  142.250.191.14 (142.250.191.14)  15.456 ms  15.234 ms  15.123 ms</pre>
+                                <h3>🧑‍💻 Example: curl+MTR output</h3>
+                                <p style="margin-bottom:8px;">You can also use <code>curl ipinfo.io/ip; mtr -b -wzrc3 &lt;target&gt;</code> to get your public IP and a detailed MTR trace. Paste the full output below for analysis.</p>
+                                <pre>203.0.113.45
+Start: 2025-10-21T12:34:56+0000
+HOST: myserver.example.com (203.0.113.45)         Loss%   Snt   Last   Avg  Best  Wrst StDev
+    1. AS12345 192.168.1.1                          0.0%     3    1.1   1.2   1.0   1.4  0.2
+    2. AS23456 10.0.0.1                             0.0%     3    5.5   5.6   5.4   5.8  0.2
+    3. AS???   ???                                 100.0%    3    0.0   0.0   0.0   0.0  0.0
+    4. AS15169 lhr25s08-in-f14.1e100.net (142.250.191.14) 0.0% 3  15.2  15.1  15.0  15.2  0.1</pre>
             </div>
         </div>
     </div>
@@ -331,7 +340,6 @@
                 this.markers = [];
                 this.polylines = [];
                 this.results = [];
-                
                 this.initializeEventListeners();
             }
 
@@ -366,11 +374,18 @@
 
             async analyzeTraceroute() {
                 const input = document.getElementById('traceroute-input').value.trim();
-                const serverIP = document.getElementById('server-ip').value.trim();
+                let serverIP = document.getElementById('server-ip').value.trim();
 
                 if (!input) {
-                    this.showStatus('Please paste traceroute output first.', 'error');
+                    this.showStatus('Please paste traceroute or MTR output first.', 'error');
                     return;
+                }
+
+                // Try to auto-detect origin IP from first line (for MTR/curl combo)
+                const firstLineMatch = input.match(/^(\d{1,3}(?:\.\d{1,3}){3})/);
+                if (!serverIP && firstLineMatch) {
+                    serverIP = firstLineMatch[1];
+                    document.getElementById('server-ip').value = serverIP;
                 }
 
                 const analyzeBtn = document.getElementById('analyze-btn');
@@ -378,12 +393,17 @@
                 analyzeBtn.textContent = '🔄 Analyzing...';
 
                 this.showProgress();
-                this.showStatus('Parsing traceroute output...', 'info');
+                this.showStatus('Parsing traceroute/MTR output...', 'info');
                 this.updateProgress(10);
 
                 try {
-                    // Parse traceroute output
-                    const hops = this.parseTraceroute(input);
+                    // Parse output (auto-detect format)
+                    let hops = [];
+                    if (/^HOST:/m.test(input) && /AS/.test(input)) {
+                        hops = this.parseMtr(input);
+                    } else {
+                        hops = this.parseTraceroute(input);
+                    }
                     this.updateProgress(20);
 
                     // Add server IP as hop 0 if provided and valid
@@ -401,7 +421,7 @@
                     this.updateProgress(30);
 
                     if (allHops.length === 0) {
-                        throw new Error('No valid hops found in traceroute output');
+                        throw new Error('No valid hops found in traceroute/MTR output');
                     }
 
                     this.showStatus(`Found ${allHops.length} hops. Getting location data...`, 'info');
@@ -834,6 +854,62 @@
                 });
 
                 return processedHops;
+            }
+
+            parseMtr(input) {
+                const lines = input.split('\n');
+                const hops = [];
+                let mtrStart = false;
+                for (const line of lines) {
+                    if (line.startsWith('HOST:')) {
+                        mtrStart = true;
+                        continue;
+                    }
+                    if (!mtrStart || !line.trim() || /^Start:/.test(line)) continue;
+                    // Example:  1. AS399244 45.59.168.1 ...
+                    // Or:  3. AS60068  unn-84-17-38-221.cdn77.com (84.17.38.221) ...
+                    // Or:  2. AS???    ??? ...
+                    const m = line.match(/^\s*(\d+)\.\s+(AS\S+)\s+(.+?)\s+([\d\.]+%|\S+)\s+(\d+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s+([\d\.]+)\s*$/);
+                    if (m) {
+                        const hop = parseInt(m[1]);
+                        const asn = m[2];
+                        let hostOrIp = m[3].trim();
+                        let ip = null;
+                        let hostname = null;
+                        // If hostOrIp is in form host (ip)
+                        const hostMatch = hostOrIp.match(/(.+) \((\d{1,3}(?:\.\d{1,3}){3})\)/);
+                        if (hostMatch) {
+                            hostname = hostMatch[1].trim();
+                            ip = hostMatch[2];
+                        } else if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostOrIp)) {
+                            ip = hostOrIp;
+                            hostname = hostOrIp;
+                        } else if (hostOrIp === '???') {
+                            ip = '???';
+                            hostname = '???';
+                        } else {
+                            // Hostname only, no IP (rare)
+                            hostname = hostOrIp;
+                            ip = null;
+                        }
+                        hops.push({
+                            hop,
+                            ip,
+                            hostname,
+                            asn,
+                            loss: m[4],
+                            sent: m[5],
+                            last: m[6],
+                            avg: m[7],
+                            best: m[8],
+                            worst: m[9],
+                            stdev: m[10],
+                            responseTime: m[7] !== '0.0' ? m[7] + ' ms' : 'N/A',
+                            isAsterisk: ip === '???' || !ip
+                        });
+                    }
+                }
+                return hops;
             }
         }
 
