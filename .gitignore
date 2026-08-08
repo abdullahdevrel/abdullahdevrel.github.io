@@ -1,0 +1,10 @@
+# Local Claude Code context — not shared
+CLAUDE.md
+.claude/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
